@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   AreaChart,
   Area,
@@ -10,7 +10,7 @@ import {
 import { Search } from 'lucide-react';
 import './App.css';
 
-import { generateData } from './utils/mockData';
+import { getDailyStockData } from './utils/alphaVantageData';
 import CustomTooltip from './components/CustomTooltip';
 import GoldDataModal from './components/GoldDataModal';
 
@@ -21,11 +21,62 @@ function App() {
   const [currency, setCurrency] = useState('USD'); // 'USD' or 'GOLD'
   const [showAdmin, setShowAdmin] = useState(false);
 
-  // const [data, setData] = useState([]); // Removed async state
-  // const [loading, setLoading] = useState(false);
-  // const [error, setError] = useState(null);
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  const data = useMemo(() => generateData(selectedRange, ticker), [selectedRange, ticker]);
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+      setData([]);
+
+      try {
+        // Fetch Stock and Gold Proxy (GLD)
+        const [stockData, goldData] = await Promise.all([
+          getDailyStockData(ticker),
+          getDailyStockData('GLD')
+        ]);
+
+        // Merge Logic
+        const mergedData = stockData.map(stockItem => {
+          // Find matching gold date
+          // Alpha Vantage dates are YYYY-MM-DD strings in our object
+          const goldItem = goldData.find(g => g.date === stockItem.date);
+          const goldPrice = goldItem ? goldItem.price : (goldData[goldData.length - 1]?.price || 200); // Fallback
+
+          // GLD is ~1/10th of an ounce of gold (roughly). 
+          // Real Spot Gold is XAU or GC=F ~2000+. GLD is ~200.
+          // To estimate "Price in Ounces", we can multiply GLD * 10 (approx) or use it relative.
+          // Let's assume GLD price * 10 for approximation of 1 Oz Gold Price.
+          const estimatedGoldOzPrice = goldPrice * 10;
+
+          return {
+            date: stockItem.date,
+            rawDate: stockItem.rawDate,
+            price: stockItem.price,
+            goldPrice: estimatedGoldOzPrice,
+            priceInGold: parseFloat((stockItem.price / estimatedGoldOzPrice).toFixed(4))
+          };
+        });
+
+        // Filter by range (Basic client-side filtering since API returns full/compact)
+        // AV 'compact' returns 100 points.
+        // We'll just use what we get for now.
+        setData(mergedData);
+
+      } catch (err) {
+        console.error(err);
+        setError(err.message || "Failed to load data");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [ticker]); // Re-fetch only on ticker change due to strict API limits
+  // NOTE: range changes removed from dependency to save API calls, 
+  // or we can just filter client side if we implement that logic. Use ticker only for now.
 
   const currentData = data[data.length - 1] || {};
   const startData = data[0] || {};
@@ -104,43 +155,50 @@ function App() {
         </div>
 
         <div className="chart-container">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={data}>
-              <defs>
-                <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#2962ff" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#2962ff" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <XAxis
-                dataKey="date"
-                axisLine={false}
-                tickLine={false}
-                tick={{ fill: '#666', fontSize: 12 }}
-                tickFormatter={(str) => {
-                  const date = new Date(str);
-                  if (selectedRange === '1d') return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                  return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
-                }}
-              />
-              <YAxis
-                domain={['auto', 'auto']}
-                axisLine={false}
-                tickLine={false}
-                tick={{ fill: '#666', fontSize: 12 }}
-                tickFormatter={(val) => currency === 'USD' ? `$${val.toFixed(2)}` : `${val.toFixed(2)} oz`}
-              />
-              <Tooltip content={<CustomTooltip currency={currency} />} />
-              <Area
-                type="monotone"
-                dataKey={currency === 'USD' ? 'price' : 'priceInGold'}
-                stroke="#2962ff"
-                strokeWidth={2}
-                fill="url(#colorPrice)"
-                activeDot={{ r: 6, fill: '#2962ff', stroke: '#fff', strokeWidth: 2 }}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
+          {loading && <div className="loading-overlay">Loading...</div>}
+          {error && <div className="error-overlay" style={{ color: 'red', padding: 20, textAlign: 'center' }}>
+            <h3>Error</h3>
+            <p>{error}</p>
+            {error.includes("API Limit") && <small>Wait a minute or try again tomorrow.</small>}
+          </div>}
+          {!loading && !error && (
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={data}>
+                <defs>
+                  <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#2962ff" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#2962ff" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <XAxis
+                  dataKey="date"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: '#666', fontSize: 12 }}
+                  tickFormatter={(str) => {
+                    const date = new Date(str);
+                    return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+                  }}
+                />
+                <YAxis
+                  domain={['auto', 'auto']}
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: '#666', fontSize: 12 }}
+                  tickFormatter={(val) => currency === 'USD' ? `$${val.toFixed(2)}` : `${val.toFixed(2)} oz`}
+                />
+                <Tooltip content={<CustomTooltip currency={currency} />} />
+                <Area
+                  type="monotone"
+                  dataKey={currency === 'USD' ? 'price' : 'priceInGold'}
+                  stroke="#2962ff"
+                  strokeWidth={2}
+                  fill="url(#colorPrice)"
+                  activeDot={{ r: 6, fill: '#2962ff', stroke: '#fff', strokeWidth: 2 }}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          )}
         </div>
 
       </div>
