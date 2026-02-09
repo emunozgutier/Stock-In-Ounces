@@ -9,16 +9,18 @@ const useStore = create(
             timeRange: '1Y', // Default time range
             data: [],        // Full CSV data
             tickers: [],     // Ticker metadata
+            isLogScale: false, // Logarithmic scale toggle
 
             setSelectedTicker: (ticker) => set({ selectedTicker: ticker }),
             setSearchTerm: (term) => set({ searchTerm: term }),
             setTimeRange: (range) => set({ timeRange: range }),
             setData: (data) => set({ data }),
             setTickers: (tickers) => set({ tickers }),
+            setIsLogScale: (isLog) => set({ isLogScale: isLog }),
         }),
         {
             name: 'stock-storage', // unique name
-            partialize: (state) => ({ selectedTicker: state.selectedTicker, timeRange: state.timeRange }), // only persist these
+            partialize: (state) => ({ selectedTicker: state.selectedTicker, timeRange: state.timeRange, isLogScale: state.isLogScale }), // only persist these
         }
     )
 );
