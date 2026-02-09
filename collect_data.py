@@ -2,9 +2,9 @@ import yfinance as yf
 import pandas as pd
 import json
 import os
-
 import requests
 import io
+import datetime
 
 def get_sp500_tickers():
     """Scrapes the list of S&P 500 tickers from Wikipedia."""
@@ -16,101 +16,134 @@ def get_sp500_tickers():
     try:
         response = requests.get(url, headers=headers)
         response.raise_for_status()
-        
-        # Use io.StringIO to pass the HTML content to read_html
         tables = pd.read_html(io.StringIO(response.text))
-        
-        # The first table usually contains the tickers
         df = tables[0]
         tickers = df['Symbol'].tolist()
-        # Clean tickers (e.g., BRK.B -> BRK-B for yfinance)
         tickers = [ticker.replace('.', '-') for ticker in tickers]
         return tickers
     except Exception as e:
         print(f"Error fetching S&P 500 tickers: {e}")
         return []
 
+def get_vanguard_etfs():
+    """Returns a list of popular Vanguard ETFs."""
+    return ['VOO', 'VTI', 'BND', 'VUG', 'VTV', 'VXUS', 'VIG', 'VNQ', 'VGT', 'VWO']
+
+def get_crypto_tickers():
+    """Returns a list of top 10 cryptocurrencies."""
+    return ['BTC-USD', 'ETH-USD', 'XRP-USD', 'BNB-USD', 'SOL-USD', 'ADA-USD', 'DOGE-USD', 'TRX-USD', 'DOT-USD', 'LINK-USD']
+
 def fetch_data(tickers):
-    """Fetches weekly data for the last 10 years for given tickers."""
+    """Fetches weekly data for the given tickers."""
     if not tickers:
         print("No tickers to fetch.")
         return None
 
-    print(f"Fetching data for {len(tickers)} tickers...")
+    print(f"Fetching weekly data for {len(tickers)} tickers...")
     
-    # Download data
-    # period="10y", interval="1wk"
-    # group_by='ticker' makes it easier to process individual stocks
-    data = yf.download(tickers, period="10y", interval="1wk", group_by='ticker', threads=True)
+    # Download weekly data
+    data = yf.download(tickers, period="max", interval="1wk", group_by='ticker', threads=True)
     
-    return data
+    # Download today's data to ensure we have the very latest price
+    print("Fetching today's data...")
+    data_today = yf.download(tickers, period="1d", interval="1d", group_by='ticker', threads=True)
+    
+    return data, data_today
 
-def process_and_save(data, filepath):
-    """Processes the DataFrame and saves it to JSON."""
-    if data is None or data.empty:
-        print("No data to save.")
+def process_and_save_csv(weekly_data, daily_data, tickers, sp500_tickers, etf_tickers, crypto_tickers, output_file):
+    """Processes the data, calculates price in Gold, and saves to CSV."""
+    
+    gold_ticker = 'GC=F'
+    
+    # Helper to extract Close prices
+    def extract_close(df):
+        if isinstance(df.columns, pd.MultiIndex):
+            # df.columns levels: Ticker, PriceType
+            # We want a DataFrame where columns are Tickers and values are Close prices
+            try:
+                # xs is cleaner but sometimes tricky with MultiIndex structure variations from yfinance
+                # Let's try to select 'Close' from level 1
+                close_prices = df.xs('Close', level=1, axis=1)
+                return close_prices
+            except Exception:
+                # Fallback if structure is different
+                return df.xs('Close', level=1, axis=1) # Retry or handle differently
+        else:
+            return df['Close'] if 'Close' in df else df
+
+    weekly_close = extract_close(weekly_data)
+    daily_close = extract_close(daily_data)
+    
+    # Combine weekly and daily data
+    # We want to append the daily row if it's newer than the last weekly row
+    combined_close = weekly_close.copy()
+    
+    if not daily_close.empty:
+        last_weekly_date = weekly_close.index[-1].date()
+        last_daily_date = daily_close.index[-1].date()
+        
+        if last_daily_date > last_weekly_date:
+            combined_close = pd.concat([weekly_close, daily_close])
+            
+    # Ensure Gold price is available
+    if gold_ticker not in combined_close.columns:
+        print("Gold price not found!")
         return
 
-    output_data = {}
+    gold_price = combined_close[gold_ticker]
     
-    # Iterate through tickers
-    # The columns is a MultiIndex if multiple tickers. 
-    # If standard batch download, level 0 is Ticker, level 1 is Price Type (Open, Close, etc.)
+    # Calculate Price in Ounces of Gold
+    # Formula: Asset Price / Gold Price
+    price_in_gold = combined_close.div(gold_price, axis=0)
     
-    # Check if data has MultiIndex columns (multiple tickers)
-    if isinstance(data.columns, pd.MultiIndex):
-        tickers = data.columns.levels[0]
-        for ticker in tickers:
-            try:
-                # Extract Close prices
-                ticker_data = data[ticker]['Close'].dropna()
-                
-                # Convert timestamps to string and values to float
-                # We retain only date part of index for key
-                formatted_data = {
-                    str(date.date()): round(price, 2) 
-                    for date, price in ticker_data.items()
-                }
-                
-                if formatted_data:
-                    output_data[ticker] = formatted_data
-            except KeyError:
-                print(f"Could not process data for {ticker}")
-            except Exception as e:
-                print(f"Error processing {ticker}: {e}")
-    else:
-        # Single ticker case (unlikely for S&P 500 but good to handle)
-        print("Single ticker processing not explicitly specialized but follows similar logic.")
-        # Implementation skipped for brevity as we expect 500 tickers
-        pass
+    # Unpivot (melt) to create a long-format CSV: Date, Ticker, PriceUSD, PriceGold, Type
+    # Reset index to make Date a column
+    price_in_gold_reset = price_in_gold.reset_index().melt(id_vars='Date', var_name='Ticker', value_name='PriceGold')
+    prices_usd_reset = combined_close.reset_index().melt(id_vars='Date', var_name='Ticker', value_name='PriceUSD')
+    
+    # Merge USD and Gold prices
+    final_df = pd.merge(price_in_gold_reset, prices_usd_reset, on=['Date', 'Ticker'])
+    
+    # Add Type column
+    def get_type(ticker):
+        if ticker == gold_ticker: return 'Gold'
+        if ticker in sp500_tickers: return 'SP500'
+        if ticker in etf_tickers: return 'ETF'
+        if ticker in crypto_tickers: return 'Crypto'
+        return 'Other'
 
-    # Ensure directory exists
-    os.makedirs(os.path.dirname(filepath), exist_ok=True)
+    final_df['Type'] = final_df['Ticker'].apply(get_type)
     
-    with open(filepath, 'w') as f:
-        json.dump(output_data, f, indent=2) # indent for readability, remove for size
-        
-    print(f"Data saved to {filepath}")
+    # Drop rows with NaN PriceGold (e.g. where Gold price was NaN or asset price was NaN)
+    final_df = final_df.dropna(subset=['PriceGold'])
+    
+    # Sort by Date and Ticker
+    final_df = final_df.sort_values(by=['Date', 'Ticker'])
+    
+    # Save to CSV
+    os.makedirs(os.path.dirname(output_file), exist_ok=True)
+    final_df.to_csv(output_file, index=False)
+    print(f"Data saved to {output_file}")
 
 def main():
     print("Starting data collection...")
     
-    tickers = get_sp500_tickers()
-    if not tickers:
-        print("Failed to get tickers. Exiting.")
-        return
-
-    # Add GLD ETF for Gold Price
-    tickers.append('GLD')
-
-    # For testing, you might want to slice tickers[:10] to run fast
-    # tickers = tickers[:20] 
+    sp500 = get_sp500_tickers()
+    etfs = get_vanguard_etfs()
+    cryptos = get_crypto_tickers()
+    gold = ['GC=F']
     
-    data = fetch_data(tickers)
+    all_tickers = sp500 + etfs + cryptos + gold
+    # Remove duplicates if any
+    all_tickers = list(set(all_tickers))
     
-    # Save to public folder so React can fetch it
-    output_file = os.path.join("public", "sp500_data.json")
-    process_and_save(data, output_file)
+    # Fetch data
+    weekly_data, daily_data = fetch_data(all_tickers)
+    
+    # Output file
+    output_file = os.path.join("public", "data.csv")
+    
+    process_and_save_csv(weekly_data, daily_data, all_tickers, sp500, etfs, cryptos, output_file)
     
     print("Done!")
 
