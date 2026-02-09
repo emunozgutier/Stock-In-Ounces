@@ -1,36 +1,44 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
 :root {
   --gold-400: #FACC15;
   --gold-500: #EAB308;
 }
 
 body {
-  background-color: #0f172a; /* slate-900 */
-  color: #f1f5f9; /* slate-100 */
+  background-color: #212529;
+  /* Bootstrap dark bg equivalent */
+  color: #f8f9fa;
+  /* Bootstrap light text equivalent */
 }
 
-/* Custom Gold Text Utility */
+/* Custom Gold Text Helper */
 .text-gold-400 {
-    color: #FACC15;
+  color: var(--gold-400) !important;
 }
+
 .text-gold-500 {
-    color: #EAB308;
+  color: var(--gold-500) !important;
+}
+
+.bg-gradient-gold-text {
+  background: linear-gradient(to right, #FACC15, #fef08a);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 /* Scrollbar specific for search dropdown */
 ::-webkit-scrollbar {
   width: 8px;
 }
+
 ::-webkit-scrollbar-track {
-  background: #1e293b; 
+  background: #1e293b;
 }
+
 ::-webkit-scrollbar-thumb {
-  background: #475569; 
+  background: #475569;
   border-radius: 4px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
-  background: #64748b; 
+  background: #64748b;
 }

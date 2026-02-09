@@ -14,12 +14,12 @@ function App() {
       try {
         setLoading(true);
         // Load Tickers Metadata
-        const tickersResponse = await fetch('/tickers.json');
+        const tickersResponse = await fetch('./tickers.json');
         const tickersData = await tickersResponse.json();
         setTickers(tickersData);
 
         // Load CSV Data
-        const response = await fetch('/data.csv');
+        const response = await fetch('./data.csv');
         const reader = response.body.getReader();
         const result = await reader.read();
         const decoder = new TextDecoder('utf-8');
@@ -50,30 +50,40 @@ function App() {
   }, [setData, setTickers]);
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col items-center py-10 px-4">
-      <header className="mb-10 text-center">
-        <h1 className="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-gold-400 to-yellow-200 mb-2">
-          Stock in Ounces
-        </h1>
-        <p className="text-slate-400 text-lg">
-          Track the value of your assets in real money: <span className="text-gold-400 font-semibold">Gold</span>.
-        </p>
-      </header>
+    <div className="bg-dark text-light min-vh-100 d-flex flex-column py-5">
+      <div className="container">
+        <header className="text-center mb-5">
+          <h1 className="display-4 fw-bold mb-2">
+            <span className="bg-gradient-gold-text">Stock in Ounces</span>
+          </h1>
+          <p className="lead text-secondary">
+            Track the value of your assets in real money: <span className="text-warning fw-semibold">Gold</span>.
+          </p>
+        </header>
 
-      <main className="w-full max-w-5xl space-y-8">
-        {loading ? (
-          <div className="text-center text-xl text-gold-400 animate-pulse">Loading financial data...</div>
-        ) : (
-          <>
-            <SearchStock />
-            <Chart />
-          </>
-        )}
-      </main>
+        <main>
+          <div className="row justify-content-center">
+            <div className="col-lg-10">
+              {loading ? (
+                <div className="d-flex justify-content-center">
+                  <div className="spinner-border text-warning" role="status">
+                    <span className="visually-hidden">Loading...</span>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <SearchStock />
+                  <Chart />
+                </>
+              )}
+            </div>
+          </div>
+        </main>
 
-      <footer className="mt-20 text-slate-500 text-sm">
-        <p>Data provided by Yahoo Finance. This is for educational purposes only.</p>
-      </footer>
+        <footer className="mt-5 text-center text-secondary small">
+          <p>Data provided by Yahoo Finance. This is for educational purposes only.</p>
+        </footer>
+      </div>
     </div>
   );
 }
