@@ -2,11 +2,12 @@
 /**
  * Calculates trendline and percentile bands for a given dataset.
  * 
- * @param {Array} data - Array of objects containing { Date, PriceGold }.
+ * @param {Array} data - Array of objects containing { Date, PriceGold, PriceUSD, etc }.
  * @param {String} type - 'linear' or 'log'.
+ * @param {String} dataKey - Key to use for Y values (e.g., 'PriceGold' or 'PriceUSD').
  * @returns {Array} - Array of objects with trendline values added.
  */
-export const calculateTrendlines = (data, type) => {
+export const calculateTrendlines = (data, type, dataKey = 'PriceGold') => {
     if (!data || data.length < 2) return data;
 
     const n = data.length;
@@ -18,7 +19,7 @@ export const calculateTrendlines = (data, type) => {
 
     const points = data.map(d => {
         const x = new Date(d.Date).getTime() - firstDate;
-        let y = d.PriceGold;
+        let y = d[dataKey];
 
         // Ensure y is valid for log scale
         if (type === 'log' && y <= 0) y = 0.0000001;

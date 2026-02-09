@@ -26,7 +26,6 @@ const Chart = () => {
 
         // Time Range Filtering
         if (timeRange !== 'Max' && filteredData.length > 0) {
-            // Ensure filteredData is sorted (it should be from App.jsx, but good to be safe for local logic)
             filteredData.sort((a, b) => new Date(a.Date) - new Date(b.Date));
 
             const lastDate = new Date(filteredData[filteredData.length - 1].Date);
@@ -43,7 +42,6 @@ const Chart = () => {
                     startDate.setFullYear(lastDate.getFullYear() - 10);
                     break;
                 default:
-                    // Max: set to very old date or just don't filter
                     startDate = new Date(0);
                     break;
             }
@@ -55,9 +53,31 @@ const Chart = () => {
 
         // Calculate Trendlines if enabled
         if (trendlineType !== 'none' && filteredData.length > 1) {
-            const trendData = calculateTrendlines(filteredData, trendlineType);
-            // trendData already matches the structure we need
-            return trendData;
+            // Calculate Gold Trends
+            const goldTrendData = calculateTrendlines(filteredData, trendlineType, 'PriceGold');
+            // Calculate USD Trends
+            const usdTrendData = calculateTrendlines(filteredData, trendlineType, 'PriceUSD');
+
+            // Merge results
+            // Since calculateTrendlines returns a new array with same length and order, we can map by index
+            return goldTrendData.map((d, i) => {
+                const usdD = usdTrendData[i];
+                return {
+                    ...d,
+                    // Gold Trends (namespaced)
+                    trendGold: d.trendline,
+                    trendGoldTop10: d.trendTop10,
+                    trendGoldTop20: d.trendTop20,
+                    trendGoldBottom20: d.trendBottom20,
+                    trendGoldBottom10: d.trendBottom10,
+                    // USD Trends (namespaced)
+                    trendUSD: usdD.trendline,
+                    trendUSDTop10: usdD.trendTop10,
+                    trendUSDTop20: usdD.trendTop20,
+                    trendUSDBottom20: usdD.trendBottom20,
+                    trendUSDBottom10: usdD.trendBottom10
+                };
+            });
         }
 
         return filteredData;
@@ -179,27 +199,51 @@ const Chart = () => {
                         strokeWidth={2}
                     />
 
-                    {/* Trendlines */}
+                    {/* Trendlines - Gold */}
                     {trendlineType !== 'none' && (
                         <Line
                             yAxisId="left"
                             type="monotone"
-                            dataKey="trendline"
-                            stroke="#ffffff"
+                            dataKey="trendGold"
+                            stroke="#FCD34D" // Light Orange
                             strokeDasharray="5 5"
-                            name="Trendline"
+                            name="Trend (Gold)"
                             dot={false}
                             strokeWidth={2}
                         />
                     )}
 
-                    {/* Rainbow Bands */}
+                    {/* Trendlines - USD */}
+                    {trendlineType !== 'none' && (
+                        <Line
+                            yAxisId="right"
+                            type="monotone"
+                            dataKey="trendUSD"
+                            stroke="#6EE7B7" // Light Green
+                            strokeDasharray="5 5"
+                            name="Trend (USD)"
+                            dot={false}
+                            strokeWidth={2}
+                        />
+                    )}
+
+                    {/* Rainbow Bands - Gold */}
                     {trendlineType !== 'none' && showRainbow && (
                         <>
-                            <Line yAxisId="left" type="monotone" dataKey="trendTop10" stroke="#EF4444" dot={false} strokeWidth={1} name="Top 10%" />
-                            <Line yAxisId="left" type="monotone" dataKey="trendTop20" stroke="#F59E0B" dot={false} strokeWidth={1} name="Top 20%" />
-                            <Line yAxisId="left" type="monotone" dataKey="trendBottom20" stroke="#3B82F6" dot={false} strokeWidth={1} name="Bottom 20%" />
-                            <Line yAxisId="left" type="monotone" dataKey="trendBottom10" stroke="#8B5CF6" dot={false} strokeWidth={1} name="Bottom 10%" />
+                            <Line yAxisId="left" type="monotone" dataKey="trendGoldTop10" stroke="#EF4444" dot={false} strokeWidth={1} name="Gold Top 10%" />
+                            <Line yAxisId="left" type="monotone" dataKey="trendGoldTop20" stroke="#F59E0B" dot={false} strokeWidth={1} name="Gold Top 20%" />
+                            <Line yAxisId="left" type="monotone" dataKey="trendGoldBottom20" stroke="#3B82F6" dot={false} strokeWidth={1} name="Gold Bottom 20%" />
+                            <Line yAxisId="left" type="monotone" dataKey="trendGoldBottom10" stroke="#8B5CF6" dot={false} strokeWidth={1} name="Gold Bottom 10%" />
+                        </>
+                    )}
+
+                    {/* Rainbow Bands - USD */}
+                    {trendlineType !== 'none' && showRainbow && (
+                        <>
+                            <Line yAxisId="right" type="monotone" dataKey="trendUSDTop10" stroke="#EF4444" strokeDasharray="3 3" dot={false} strokeWidth={1} name="USD Top 10%" />
+                            <Line yAxisId="right" type="monotone" dataKey="trendUSDTop20" stroke="#F59E0B" strokeDasharray="3 3" dot={false} strokeWidth={1} name="USD Top 20%" />
+                            <Line yAxisId="right" type="monotone" dataKey="trendUSDBottom20" stroke="#3B82F6" strokeDasharray="3 3" dot={false} strokeWidth={1} name="USD Bottom 20%" />
+                            <Line yAxisId="right" type="monotone" dataKey="trendUSDBottom10" stroke="#8B5CF6" strokeDasharray="3 3" dot={false} strokeWidth={1} name="USD Bottom 10%" />
                         </>
                     )}
 
@@ -219,8 +263,8 @@ const Chart = () => {
             const priceUSD = usdItem ? usdItem.value : 0;
 
             // Calculate Gold Price (USD per Oz)
-            // Asset Price (USD) = Asset Price (USD) / Asset Price (Gold Oz) -> Wait no
-            // Gold Price (USD/Oz) = Asset Price (USD) / Asset Price (Gold Oz)
+            // Asset Price (USD) = Asset Price (Gold Oz) * Gold Price (USD/Oz)
+            // So: Gold Price (USD/Oz) = Asset Price (USD) / Asset Price (Gold Oz)
             let goldPriceUSD = 0;
             if (priceGold > 0) {
                 goldPriceUSD = priceUSD / priceGold;
@@ -262,7 +306,7 @@ const Chart = () => {
                         <label className="text-secondary small mb-0 me-1">Trend:</label>
                         <select
                             className="form-select form-select-sm bg-dark text-light border-secondary"
-                            style={{ width: 'auto', paddingRight: '2.5rem' }}
+                            style={{ width: 'auto', paddingRight: '2rem' }}
                             value={trendlineType}
                             onChange={(e) => setTrendlineType(e.target.value)}
                         >
