@@ -50,39 +50,35 @@ function App() {
   }, [setData, setTickers]);
 
   return (
-    <div className="bg-dark text-light min-vh-100 d-flex flex-column py-5">
-      <div className="container">
-        <header className="text-center mb-5">
-          <h1 className="display-4 fw-bold mb-2">
+    <div className="bg-dark text-light h-100 d-flex flex-column">
+      <div className="container-fluid h-100 d-flex flex-column p-0">
+        <header className="p-3 text-center flex-shrink-0">
+          <h1 className="display-6 fw-bold mb-0">
             <span className="bg-gradient-gold-text">Stock in Ounces</span>
           </h1>
-          <p className="lead text-secondary">
-            Track the value of your assets in real money: <span className="text-warning fw-semibold">Gold</span>.
+          <p className="small text-secondary mb-0">
+            Track value in <span className="text-warning fw-semibold">Gold</span>
           </p>
         </header>
 
-        <main>
-          <div className="row justify-content-center">
-            <div className="col-lg-10">
-              {loading ? (
-                <div className="d-flex justify-content-center">
-                  <div className="spinner-border text-warning" role="status">
-                    <span className="visually-hidden">Loading...</span>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <SearchStock />
-                  <Chart />
-                </>
-              )}
+        <main className="flex-grow-1 d-flex flex-column overflow-hidden px-2 pb-2">
+          {loading ? (
+            <div className="d-flex justify-content-center align-items-center h-100">
+              <div className="spinner-border text-warning" role="status">
+                <span className="visually-hidden">Loading...</span>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="d-flex flex-column h-100">
+              <div className="mb-2">
+                <SearchStock />
+              </div>
+              <div className="flex-grow-1 min-h-0">
+                <Chart />
+              </div>
+            </div>
+          )}
         </main>
-
-        <footer className="mt-5 text-center text-secondary small">
-          <p>Data provided by Yahoo Finance. This is for educational purposes only.</p>
-        </footer>
       </div>
     </div>
   );

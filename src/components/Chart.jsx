@@ -11,9 +11,10 @@ import {
 } from 'recharts';
 import useStore from '../store';
 import { useMemo } from 'react';
+import TimeScale from './TimeScale';
 
 const Chart = () => {
-    const { data, selectedTicker, timeRange, setTimeRange } = useStore();
+    const { data, selectedTicker, timeRange } = useStore();
 
     const chartData = useMemo(() => {
         if (!data || !selectedTicker) return [];
@@ -50,30 +51,18 @@ const Chart = () => {
     }
 
     if (chartData.length === 0) {
-        if (data.length === 0) return <div className="text-center text-secondary mt-5">Loading data...</div>;
-        return <div className="text-center text-secondary mt-5">No data available for {selectedTicker} in this range.</div>;
+        if (data.length === 0) return <div className="d-flex justify-content-center align-items-center h-100 text-secondary">Loading data...</div>;
+        return <div className="d-flex justify-content-center align-items-center h-100 text-secondary">No data available for {selectedTicker} in this range.</div>;
     }
 
     return (
-        <div className="card bg-dark border-secondary shadow-lg">
-            <div className="card-header bg-transparent border-secondary d-flex justify-content-between align-items-center flex-wrap">
-                <h2 className="h4 text-warning mb-0 me-3">{selectedTicker} / Gold</h2>
-
-                <div className="btn-group btn-group-sm" role="group">
-                    {['1Y', '5Y', '10Y', 'Max'].map(range => (
-                        <button
-                            key={range}
-                            type="button"
-                            className={`btn btn-outline-warning ${timeRange === range ? 'active' : ''}`}
-                            onClick={() => setTimeRange(range)}
-                        >
-                            {range}
-                        </button>
-                    ))}
-                </div>
+        <div className="d-flex flex-column h-100 w-100 bg-dark border border-secondary rounded overflow-hidden shadow-lg">
+            <div className="p-2 d-flex justify-content-between align-items-center border-bottom border-secondary bg-dark-subtle">
+                <h2 className="h6 text-warning mb-0">{selectedTicker} / Gold</h2>
+                <TimeScale />
             </div>
 
-            <div className="card-body" style={{ height: '500px' }}>
+            <div className="flex-grow-1 min-h-0 w-100 p-2 position-relative">
                 <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart data={chartData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#374151" />

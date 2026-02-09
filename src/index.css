@@ -8,6 +8,19 @@ body {
   /* Bootstrap dark bg equivalent */
   color: #f8f9fa;
   /* Bootstrap light text equivalent */
+  height: 100%;
+  overflow: hidden;
+}
+
+html {
+  height: 100%;
+  overflow: hidden;
+}
+
+#root {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Custom Gold Text Helper */
@@ -22,6 +35,7 @@ body {
 .bg-gradient-gold-text {
   background: linear-gradient(to right, #FACC15, #fef08a);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
