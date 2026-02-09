@@ -142,7 +142,7 @@ const Chart = () => {
 
     return (
         <div className="d-flex flex-column h-100 w-100 bg-dark border border-secondary rounded overflow-hidden shadow-lg">
-            <div className="p-2 d-flex justify-content-between align-items-center border-bottom border-secondary bg-dark-subtle">
+            <div className="p-2 d-flex justify-content-between align-items-center border-bottom border-secondary" style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }}>
                 <h2 className="h6 text-warning mb-0">{selectedTicker} / Gold</h2>
                 <TimeScale />
             </div>
