@@ -16,6 +16,23 @@ import TimeScale from './TimeScale';
 const Chart = () => {
     const { data, selectedTicker, timeRange } = useStore();
 
+    const formatGoldPrice = (value) => {
+        if (value === 0) return "0 oz";
+        const absValue = Math.abs(value);
+
+        if (absValue >= 1) {
+            return `${value.toPrecision(4)} oz`;
+        } else if (absValue >= 0.001) {
+            return `${(value * 1000).toPrecision(4)} m oz`;
+        } else {
+            return `${(value * 1000000).toPrecision(4)} µ oz`;
+        }
+    };
+
+    const formatUSD = (value) => {
+        return `$${value.toFixed(2)}`;
+    };
+
     const chartData = useMemo(() => {
         if (!data || !selectedTicker) return [];
 
@@ -81,16 +98,23 @@ const Chart = () => {
                         yAxisId="left"
                         stroke="#F59E0B"
                         label={{ value: 'Ounces of Gold', angle: -90, position: 'insideLeft', fill: '#F59E0B', dy: 50 }}
+                        tickFormatter={formatGoldPrice}
                     />
                     <YAxis
                         yAxisId="right"
                         orientation="right"
                         stroke="#10B981"
                         label={{ value: 'Price (USD)', angle: 90, position: 'insideRight', fill: '#10B981' }}
+                        tickFormatter={formatUSD}
                     />
                     <Tooltip
                         contentStyle={{ backgroundColor: '#212529', border: '1px solid #6c757d', color: '#f8f9fa' }}
                         labelStyle={{ color: '#ced4da' }}
+                        formatter={(value, name) => {
+                            if (name === "Price in Gold (oz)") return [formatGoldPrice(value), name];
+                            if (name === "Price in USD ($)") return [formatUSD(value), name];
+                            return [value, name];
+                        }}
                     />
                     <Legend wrapperStyle={{ color: '#adb5bd' }} />
                     <Line
