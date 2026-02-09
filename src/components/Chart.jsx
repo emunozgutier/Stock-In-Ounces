@@ -16,23 +16,6 @@ import TimeScale from './TimeScale';
 const Chart = () => {
     const { data, selectedTicker, timeRange, isLogScale, setIsLogScale } = useStore();
 
-    const formatGoldPrice = (value) => {
-        if (value === 0) return "0 oz";
-        const absValue = Math.abs(value);
-
-        if (absValue >= 1) {
-            return `${value.toPrecision(4)} oz`;
-        } else if (absValue >= 0.001) {
-            return `${(value * 1000).toPrecision(4)} m oz`;
-        } else {
-            return `${(value * 1000000).toPrecision(4)} µ oz`;
-        }
-    };
-
-    const formatUSD = (value) => {
-        return `$${value.toFixed(2)}`;
-    };
-
     const chartData = useMemo(() => {
         if (!data || !selectedTicker) return [];
 
@@ -70,6 +53,45 @@ const Chart = () => {
         return filteredData;
     }, [data, selectedTicker, timeRange]);
 
+    // Determine the scale for the Y-Axis based on the maximum value in the dataset
+    const goldAxisConfig = useMemo(() => {
+        if (chartData.length === 0) return { scale: 1, unit: 'Ounces', label: 'Oz' };
+
+        const maxVal = Math.max(...chartData.map(d => Math.abs(d.PriceGold)));
+
+        if (maxVal === 0) return { scale: 1, unit: 'Ounces', label: 'Oz' };
+
+        if (maxVal < 0.001) {
+            return { scale: 1000000, unit: 'micro Oz', label: 'µoz' };
+        } else if (maxVal < 1) {
+            return { scale: 1000, unit: 'milli Oz', label: 'moz' };
+        } else {
+            return { scale: 1, unit: 'Ounces', label: 'oz' };
+        }
+    }, [chartData]);
+
+    const formatGoldAxisTick = (value) => {
+        if (value === 0) return "0";
+        return (value * goldAxisConfig.scale).toPrecision(4);
+    };
+
+    const formatGoldTooltip = (value) => {
+        if (value === 0) return "0 oz";
+        const absValue = Math.abs(value);
+
+        if (absValue >= 1) {
+            return `${value.toPrecision(4)} oz`;
+        } else if (absValue >= 0.001) {
+            return `${(value * 1000).toPrecision(4)} m oz`;
+        } else {
+            return `${(value * 1000000).toPrecision(4)} µ oz`;
+        }
+    };
+
+    const formatUSD = (value) => {
+        return `$${value.toFixed(2)}`;
+    };
+
     const renderContent = () => {
         if (!selectedTicker) {
             return <div className="d-flex justify-content-center align-items-center h-100 text-secondary">Select a stock to view its price in Gold.</div>;
@@ -80,7 +102,7 @@ const Chart = () => {
         }
         return (
             <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={chartData}>
+                <ComposedChart data={chartData} margin={{ left: 10, right: 10 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                     <XAxis
                         dataKey="Date"
@@ -97,8 +119,15 @@ const Chart = () => {
                     <YAxis
                         yAxisId="left"
                         stroke="#F59E0B"
-                        label={{ value: 'Ounces of Gold', angle: -90, position: 'insideLeft', fill: '#F59E0B', dy: 50 }}
-                        tickFormatter={formatGoldPrice}
+                        width={80} // Increased width to prevent overlap
+                        label={{
+                            value: `Price (${goldAxisConfig.unit} Gold)`,
+                            angle: -90,
+                            position: 'insideLeft',
+                            fill: '#F59E0B',
+                            style: { textAnchor: 'middle' }
+                        }}
+                        tickFormatter={formatGoldAxisTick}
                         scale={isLogScale ? 'log' : 'linear'}
                         domain={['auto', 'auto']}
                     />
@@ -106,7 +135,15 @@ const Chart = () => {
                         yAxisId="right"
                         orientation="right"
                         stroke="#10B981"
-                        label={{ value: 'Price (USD)', angle: 90, position: 'insideRight', fill: '#10B981' }}
+                        width={80} // Increased width for right axis too
+                        label={{
+                            value: 'Price (USD)',
+                            angle: 90,
+                            position: 'insideRight',
+                            fill: '#10B981',
+                            style: { textAnchor: 'middle' },
+                            dy: -50 // Adjust vertical position if needed, though 'middle' usually handles center. Recharts positioning can be tricky.
+                        }}
                         tickFormatter={formatUSD}
                         scale={isLogScale ? 'log' : 'linear'}
                         domain={['auto', 'auto']}
@@ -118,7 +155,7 @@ const Chart = () => {
                         type="monotone"
                         dataKey="PriceGold"
                         stroke="#F59E0B"
-                        name="Price in Gold (oz)"
+                        name={`Price in Gold (${goldAxisConfig.label})`}
                         dot={false}
                         strokeWidth={2}
                     />
@@ -161,7 +198,7 @@ const Chart = () => {
                     </p>
                     <div className="d-flex justify-content-between mb-1">
                         <span style={{ color: '#F59E0B' }}>Price in Gold:</span>
-                        <span className="fw-mono text-light">{formatGoldPrice(priceGold)}</span>
+                        <span className="fw-mono text-light">{formatGoldTooltip(priceGold)}</span>
                     </div>
                     <div className="d-flex justify-content-between mb-1">
                         <span style={{ color: '#10B981' }}>Price in USD:</span>
