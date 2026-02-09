@@ -21,9 +21,15 @@ function App() {
         // Load CSV Data
         const response = await fetch('./data.csv');
         const reader = response.body.getReader();
-        const result = await reader.read();
         const decoder = new TextDecoder('utf-8');
-        const csv = decoder.decode(result.value);
+        let csv = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          csv += decoder.decode(value, { stream: true });
+        }
+        csv += decoder.decode(); // End of stream
 
         Papa.parse(csv, {
           header: true,
@@ -31,6 +37,8 @@ function App() {
           complete: (results) => {
             // Filter out empty rows if any
             const VALID_DATA = results.data.filter(row => row.Date && row.Ticker);
+            // Sort by Date ascending
+            VALID_DATA.sort((a, b) => new Date(a.Date) - new Date(b.Date));
             setData(VALID_DATA);
             setLoading(false);
           },
