@@ -10,11 +10,14 @@ import {
     ComposedChart
 } from 'recharts';
 import useStore from '../store';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import TimeScale from './TimeScale';
+import { calculateTrendlines } from '../utils/analysis';
 
 const Chart = () => {
     const { data, selectedTicker, timeRange, isLogScale, setIsLogScale } = useStore();
+    const [trendlineType, setTrendlineType] = useState('none');
+    const [showRainbow, setShowRainbow] = useState(false);
 
     const chartData = useMemo(() => {
         if (!data || !selectedTicker) return [];
@@ -50,8 +53,15 @@ const Chart = () => {
             }
         }
 
+        // Calculate Trendlines if enabled
+        if (trendlineType !== 'none' && filteredData.length > 1) {
+            const trendData = calculateTrendlines(filteredData, trendlineType);
+            // trendData already matches the structure we need
+            return trendData;
+        }
+
         return filteredData;
-    }, [data, selectedTicker, timeRange]);
+    }, [data, selectedTicker, timeRange, trendlineType]);
 
     // Determine the scale for the Y-Axis based on the maximum value in the dataset
     const goldAxisConfig = useMemo(() => {
@@ -168,6 +178,31 @@ const Chart = () => {
                         dot={false}
                         strokeWidth={2}
                     />
+
+                    {/* Trendlines */}
+                    {trendlineType !== 'none' && (
+                        <Line
+                            yAxisId="left"
+                            type="monotone"
+                            dataKey="trendline"
+                            stroke="#ffffff"
+                            strokeDasharray="5 5"
+                            name="Trendline"
+                            dot={false}
+                            strokeWidth={2}
+                        />
+                    )}
+
+                    {/* Rainbow Bands */}
+                    {trendlineType !== 'none' && showRainbow && (
+                        <>
+                            <Line yAxisId="left" type="monotone" dataKey="trendTop10" stroke="#EF4444" dot={false} strokeWidth={1} name="Top 10%" />
+                            <Line yAxisId="left" type="monotone" dataKey="trendTop20" stroke="#F59E0B" dot={false} strokeWidth={1} name="Top 20%" />
+                            <Line yAxisId="left" type="monotone" dataKey="trendBottom20" stroke="#3B82F6" dot={false} strokeWidth={1} name="Bottom 20%" />
+                            <Line yAxisId="left" type="monotone" dataKey="trendBottom10" stroke="#8B5CF6" dot={false} strokeWidth={1} name="Bottom 10%" />
+                        </>
+                    )}
+
                 </ComposedChart>
             </ResponsiveContainer>
         );
@@ -184,8 +219,8 @@ const Chart = () => {
             const priceUSD = usdItem ? usdItem.value : 0;
 
             // Calculate Gold Price (USD per Oz)
-            // Asset Price (USD) = Asset Price (Gold Oz) * Gold Price (USD/Oz)
-            // So: Gold Price (USD/Oz) = Asset Price (USD) / Asset Price (Gold Oz)
+            // Asset Price (USD) = Asset Price (USD) / Asset Price (Gold Oz) -> Wait no
+            // Gold Price (USD/Oz) = Asset Price (USD) / Asset Price (Gold Oz)
             let goldPriceUSD = 0;
             if (priceGold > 0) {
                 goldPriceUSD = priceUSD / priceGold;
@@ -222,7 +257,39 @@ const Chart = () => {
             <div className="p-2 d-flex justify-content-between align-items-center border-bottom border-secondary" style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }}>
                 <h2 className="h6 text-warning mb-0">{selectedTicker} / Gold</h2>
                 <div className="d-flex align-items-center gap-3">
-                    <div className="form-check form-switch mb-0">
+                    {/* Trendline Controls */}
+                    <div className="d-flex align-items-center gap-2">
+                        <label className="text-secondary small mb-0 me-1">Trend:</label>
+                        <select
+                            className="form-select form-select-sm bg-dark text-light border-secondary"
+                            style={{ width: 'auto', paddingRight: '2.5rem' }}
+                            value={trendlineType}
+                            onChange={(e) => setTrendlineType(e.target.value)}
+                        >
+                            <option value="none">None</option>
+                            <option value="linear">Linear</option>
+                            <option value="log">Log</option>
+                        </select>
+
+                        {trendlineType !== 'none' && (
+                            <div className="form-check form-switch mb-0 ms-2">
+                                <input
+                                    className="form-check-input"
+                                    type="checkbox"
+                                    role="switch"
+                                    id="rainbowSwitch"
+                                    checked={showRainbow}
+                                    onChange={(e) => setShowRainbow(e.target.checked)}
+                                    style={{ cursor: 'pointer' }}
+                                />
+                                <label className="form-check-label text-secondary small" htmlFor="rainbowSwitch" style={{ cursor: 'pointer' }}>
+                                    Rainbow
+                                </label>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="form-check form-switch mb-0 ms-2">
                         <input
                             className="form-check-input"
                             type="checkbox"

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import Papa from 'papaparse';
+import { Github } from 'lucide-react';
 import useStore from './store';
 import SearchStock from './components/SearchStock';
 import Chart from './components/Chart';
@@ -64,9 +65,18 @@ function App() {
           <h1 className="display-6 fw-bold mb-0">
             <span className="bg-gradient-gold-text">Stock in Ounces</span>
           </h1>
-          <p className="small text-secondary mb-0">
+          <p className="small text-secondary mb-2">
             Track value in <span className="text-warning fw-semibold">Gold</span>
           </p>
+          <a
+            href="https://github.com/emunozgutier/Stock-In-Ounces"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn btn-sm btn-outline-secondary py-0 px-2 small"
+            style={{ fontSize: '0.75rem' }}
+          >
+            <Github size={16} className="me-1" /> See it on GitHub
+          </a>
         </header>
 
         <main className="flex-grow-1 d-flex flex-column overflow-hidden px-2 pb-2">
