@@ -3,7 +3,7 @@ import Papa from 'papaparse';
 import { Github } from 'lucide-react';
 import useStore from './store';
 import SearchStock from './components/SearchStock';
-import MetalSelector from './components/MetalSelector';
+import MetalSelector from './components/subcomponents1/MetalSelector';
 import Chart from './components/Chart';
 import './App.css';
 
@@ -49,6 +49,7 @@ function App() {
             let lastSilver = null;
             let lastPlatinum = null;
             let lastPalladium = null;
+            let lastRhodium = null;
 
             const ENRICHED_DATA = VALID_DATA.map(row => {
               const dateStr = row.Date;
@@ -58,6 +59,7 @@ function App() {
                 if (metalPrices.Silver) lastSilver = metalPrices.Silver;
                 if (metalPrices.Platinum) lastPlatinum = metalPrices.Platinum;
                 if (metalPrices.Palladium) lastPalladium = metalPrices.Palladium;
+                if (metalPrices.Rhodium) lastRhodium = metalPrices.Rhodium;
               }
 
               return {
@@ -65,6 +67,7 @@ function App() {
                 PriceSilver: lastSilver ? row.PriceUSD / lastSilver : null,
                 PricePlatinum: lastPlatinum ? row.PriceUSD / lastPlatinum : null,
                 PricePalladium: lastPalladium ? row.PriceUSD / lastPalladium : null,
+                PriceRhodium: lastRhodium ? row.PriceUSD / lastRhodium : null,
               };
             });
 
