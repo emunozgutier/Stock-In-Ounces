@@ -61,7 +61,7 @@ function App() {
   return (
     <div className="bg-dark text-light h-100 d-flex flex-column">
       <div className="container-fluid h-100 d-flex flex-column p-0">
-        <header className="p-3 text-center flex-shrink-0">
+        <header className="p-2 p-md-3 text-center flex-shrink-0">
           <h1 className="display-6 fw-bold mb-0">
             <span className="bg-gradient-gold-text">Stock in Ounces</span>
           </h1>
