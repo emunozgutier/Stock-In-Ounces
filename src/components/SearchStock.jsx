@@ -24,7 +24,7 @@ const SearchStock = () => {
     };
 
     return (
-        <div className="position-relative w-100 mx-auto mb-4" style={{ maxWidth: '500px' }}>
+        <div className="position-relative w-100 mx-auto" style={{ maxWidth: '500px' }}>
             <div className="input-group">
                 <span className="input-group-text bg-dark border-secondary text-secondary">
                     <Search size={20} />

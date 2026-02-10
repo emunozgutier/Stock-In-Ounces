@@ -3,11 +3,12 @@ import Papa from 'papaparse';
 import { Github } from 'lucide-react';
 import useStore from './store';
 import SearchStock from './components/SearchStock';
+import MetalSelector from './components/MetalSelector';
 import Chart from './components/Chart';
 import './App.css';
 
 function App() {
-  const { setData, setTickers } = useStore();
+  const { setData, setTickers, referenceMetal } = useStore();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -66,7 +67,7 @@ function App() {
             <span className="bg-gradient-gold-text">Stock in Ounces</span>
           </h1>
           <p className="small text-secondary mb-2">
-            Track value in <span className="text-warning fw-semibold">Gold</span>
+            Track value in <span className="text-warning fw-semibold">{referenceMetal}</span>
           </p>
           <a
             href="https://github.com/emunozgutier/Stock-In-Ounces"
@@ -88,8 +89,11 @@ function App() {
             </div>
           ) : (
             <div className="d-flex flex-column h-100">
-              <div className="mb-2">
-                <SearchStock />
+              <div className="mb-2 d-flex flex-column align-items-center gap-2">
+                <div className="w-100" style={{ maxWidth: '500px' }}>
+                  <SearchStock />
+                </div>
+                <MetalSelector />
               </div>
               <div className="flex-grow-1 min-h-0">
                 <Chart />

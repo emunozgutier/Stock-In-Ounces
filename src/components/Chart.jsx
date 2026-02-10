@@ -14,8 +14,18 @@ import { useMemo, useState } from 'react';
 import TimeScale from './TimeScale';
 import { calculateTrendlines } from '../utils/analysis';
 
+import { metals } from './MetalSelector';
+
+const metalColors = {
+    'Gold': '#F59E0B',
+    'Silver': '#9CA3AF',
+    'Platinum': '#E5E7EB',
+    'Palladium': '#F472B6',
+    'Rhodium': '#818CF8'
+};
+
 const Chart = () => {
-    const { data, selectedTicker, timeRange, isLogScale, setIsLogScale } = useStore();
+    const { data, selectedTicker, timeRange, isLogScale, setIsLogScale, referenceMetal } = useStore();
     const [trendlineType, setTrendlineType] = useState('none');
     const [showRainbow, setShowRainbow] = useState(false);
 
@@ -53,24 +63,25 @@ const Chart = () => {
 
         // Calculate Trendlines if enabled
         if (trendlineType !== 'none' && filteredData.length > 1) {
-            // Calculate Gold Trends
-            const goldTrendData = calculateTrendlines(filteredData, trendlineType, 'PriceGold');
+            const metalKey = `Price${referenceMetal}`;
+            // Calculate Metal Trends
+            const metalTrendData = calculateTrendlines(filteredData, trendlineType, metalKey);
             // Calculate USD Trends
             const usdTrendData = calculateTrendlines(filteredData, trendlineType, 'PriceUSD');
 
             // Merge results
-            // Since calculateTrendlines returns a new array with same length and order, we can map by index
-            return goldTrendData.map((d, i) => {
+            return metalTrendData.map((d, i) => {
                 const usdD = usdTrendData[i];
                 return {
                     ...d,
-                    // Gold Trends (namespaced)
-                    trendGold: d.trendline,
-                    trendGoldTop10: d.trendTop10,
-                    trendGoldTop20: d.trendTop20,
-                    trendGoldBottom20: d.trendBottom20,
-                    trendGoldBottom10: d.trendBottom10,
-                    // USD Trends (namespaced)
+                    // Metal Trends (mapped to generic keys for chart)
+                    priceMetal: d[metalKey] || 0, // Ensure value exists
+                    trendMetal: d.trendline,
+                    trendMetalTop10: d.trendTop10,
+                    trendMetalTop20: d.trendTop20,
+                    trendMetalBottom20: d.trendBottom20,
+                    trendMetalBottom10: d.trendBottom10,
+                    // USD Trends
                     trendUSD: usdD.trendline,
                     trendUSDTop10: usdD.trendTop10,
                     trendUSDTop20: usdD.trendTop20,
@@ -80,14 +91,19 @@ const Chart = () => {
             });
         }
 
-        return filteredData;
-    }, [data, selectedTicker, timeRange, trendlineType]);
+        // If no trendlines, still map the metal price to a generic key for easier rendering
+        return filteredData.map(d => ({
+            ...d,
+            priceMetal: d[`Price${referenceMetal}`] || 0
+        }));
+
+    }, [data, selectedTicker, timeRange, trendlineType, referenceMetal]);
 
     // Determine the scale for the Y-Axis based on the maximum value in the dataset
-    const goldAxisConfig = useMemo(() => {
+    const metalAxisConfig = useMemo(() => {
         if (chartData.length === 0) return { scale: 1, unit: 'Ounces', label: 'Oz' };
 
-        const maxVal = Math.max(...chartData.map(d => Math.abs(d.PriceGold)));
+        const maxVal = Math.max(...chartData.map(d => Math.abs(d.priceMetal)));
 
         if (maxVal === 0) return { scale: 1, unit: 'Ounces', label: 'Oz' };
 
@@ -100,12 +116,12 @@ const Chart = () => {
         }
     }, [chartData]);
 
-    const formatGoldAxisTick = (value) => {
+    const formatMetalAxisTick = (value) => {
         if (value === 0) return "0";
-        return (value * goldAxisConfig.scale).toPrecision(4);
+        return (value * metalAxisConfig.scale).toPrecision(4);
     };
 
-    const formatGoldTooltip = (value) => {
+    const formatMetalTooltip = (value) => {
         if (value === 0) return "0 oz";
         const absValue = Math.abs(value);
 
@@ -124,7 +140,7 @@ const Chart = () => {
 
     const renderContent = () => {
         if (!selectedTicker) {
-            return <div className="d-flex justify-content-center align-items-center h-100 text-secondary">Select a stock to view its price in Gold.</div>;
+            return <div className="d-flex justify-content-center align-items-center h-100 text-secondary">Select a stock to view its price in {referenceMetal}.</div>;
         }
         if (chartData.length === 0) {
             if (data.length === 0) return <div className="d-flex justify-content-center align-items-center h-100 text-secondary">Loading data...</div>;
@@ -148,16 +164,16 @@ const Chart = () => {
                     />
                     <YAxis
                         yAxisId="left"
-                        stroke="#F59E0B"
+                        stroke={metalColors[referenceMetal]}
                         width={80} // Increased width to prevent overlap
                         label={{
-                            value: `Price (${goldAxisConfig.unit} Gold)`,
+                            value: `Price (${metalAxisConfig.unit} ${referenceMetal})`,
                             angle: -90,
                             position: 'insideLeft',
-                            fill: '#F59E0B',
+                            fill: metalColors[referenceMetal],
                             style: { textAnchor: 'middle' }
                         }}
-                        tickFormatter={formatGoldAxisTick}
+                        tickFormatter={formatMetalAxisTick}
                         scale={isLogScale ? 'log' : 'linear'}
                         domain={['auto', 'auto']}
                     />
@@ -183,9 +199,9 @@ const Chart = () => {
                     <Line
                         yAxisId="left"
                         type="monotone"
-                        dataKey="PriceGold"
-                        stroke="#F59E0B"
-                        name={`Price in Gold (${goldAxisConfig.label})`}
+                        dataKey="priceMetal"
+                        stroke={metalColors[referenceMetal]}
+                        name={`Price in ${referenceMetal} (${metalAxisConfig.label})`}
                         dot={false}
                         strokeWidth={2}
                     />
@@ -199,15 +215,15 @@ const Chart = () => {
                         strokeWidth={2}
                     />
 
-                    {/* Trendlines - Gold */}
+                    {/* Trendlines - Metal */}
                     {trendlineType !== 'none' && (
                         <Line
                             yAxisId="left"
                             type="monotone"
-                            dataKey="trendGold"
-                            stroke="#FCD34D" // Light Orange
+                            dataKey="trendMetal"
+                            stroke={metalColors[referenceMetal]} // Same color but dashed
                             strokeDasharray="5 5"
-                            name="Trend (Gold)"
+                            name={`Trend (${referenceMetal})`}
                             dot={false}
                             strokeWidth={2}
                         />
@@ -227,13 +243,13 @@ const Chart = () => {
                         />
                     )}
 
-                    {/* Rainbow Bands - Gold */}
+                    {/* Rainbow Bands - Metal */}
                     {trendlineType !== 'none' && showRainbow && (
                         <>
-                            <Line yAxisId="left" type="monotone" dataKey="trendGoldTop10" stroke="#EF4444" dot={false} strokeWidth={1} name="Gold Top 10%" />
-                            <Line yAxisId="left" type="monotone" dataKey="trendGoldTop20" stroke="#F59E0B" dot={false} strokeWidth={1} name="Gold Top 20%" />
-                            <Line yAxisId="left" type="monotone" dataKey="trendGoldBottom20" stroke="#3B82F6" dot={false} strokeWidth={1} name="Gold Bottom 20%" />
-                            <Line yAxisId="left" type="monotone" dataKey="trendGoldBottom10" stroke="#8B5CF6" dot={false} strokeWidth={1} name="Gold Bottom 10%" />
+                            <Line yAxisId="left" type="monotone" dataKey="trendMetalTop10" stroke="#EF4444" dot={false} strokeWidth={1} name={`${referenceMetal} Top 10%`} />
+                            <Line yAxisId="left" type="monotone" dataKey="trendMetalTop20" stroke={metalColors[referenceMetal]} dot={false} strokeWidth={1} name={`${referenceMetal} Top 20%`} />
+                            <Line yAxisId="left" type="monotone" dataKey="trendMetalBottom20" stroke="#3B82F6" dot={false} strokeWidth={1} name={`${referenceMetal} Bottom 20%`} />
+                            <Line yAxisId="left" type="monotone" dataKey="trendMetalBottom10" stroke="#8B5CF6" dot={false} strokeWidth={1} name={`${referenceMetal} Bottom 10%`} />
                         </>
                     )}
 
@@ -254,20 +270,19 @@ const Chart = () => {
 
     const CustomTooltip = ({ active, payload, label }) => {
         if (active && payload && payload.length) {
-            // payload[0] is usually Price in Gold (left axis), payload[1] is Price in USD (right axis)
-            // But better to find by dataKey or name if order changes
-            const goldItem = payload.find(p => p.dataKey === 'PriceGold');
+            // payload order varies, find by name/dataKey
+            const metalItem = payload.find(p => p.dataKey === 'priceMetal');
             const usdItem = payload.find(p => p.dataKey === 'PriceUSD');
 
-            const priceGold = goldItem ? goldItem.value : 0;
+            const priceMetal = metalItem ? metalItem.value : 0;
             const priceUSD = usdItem ? usdItem.value : 0;
 
-            // Calculate Gold Price (USD per Oz)
-            // Asset Price (USD) = Asset Price (Gold Oz) * Gold Price (USD/Oz)
-            // So: Gold Price (USD/Oz) = Asset Price (USD) / Asset Price (Gold Oz)
-            let goldPriceUSD = 0;
-            if (priceGold > 0) {
-                goldPriceUSD = priceUSD / priceGold;
+            // Calculate Metal Price (USD per Oz)
+            // Asset Price (USD) = Asset Price (Metal Oz) * Metal Price (USD/Oz)
+            // So: Metal Price (USD/Oz) = Asset Price (USD) / Asset Price (Metal Oz)
+            let metalPriceUSD = 0;
+            if (priceMetal > 0) {
+                metalPriceUSD = priceUSD / priceMetal;
             }
 
             return (
@@ -276,17 +291,17 @@ const Chart = () => {
                         {new Date(label).toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
                     </p>
                     <div className="d-flex justify-content-between mb-1">
-                        <span style={{ color: '#F59E0B' }}>Price in Gold:</span>
-                        <span className="fw-mono text-light">{formatGoldTooltip(priceGold)}</span>
+                        <span style={{ color: metalColors[referenceMetal] }}>Price in {referenceMetal}:</span>
+                        <span className="fw-mono text-light">{formatMetalTooltip(priceMetal)}</span>
                     </div>
                     <div className="d-flex justify-content-between mb-1">
                         <span style={{ color: '#10B981' }}>Price in USD:</span>
                         <span className="fw-mono text-light">{formatUSD(priceUSD)}</span>
                     </div>
-                    {goldPriceUSD > 0 && (
+                    {metalPriceUSD > 0 && (
                         <div className="d-flex justify-content-between mt-2 pt-2 border-top border-secondary">
-                            <span className="text-warning small fst-italic">1 Oz Gold:</span>
-                            <span className="fw-mono text-light small">{formatUSD(goldPriceUSD)}</span>
+                            <span className="text-warning small fst-italic">1 Oz {referenceMetal}:</span>
+                            <span className="fw-mono text-light small">{formatUSD(metalPriceUSD)}</span>
                         </div>
                     )}
                 </div>
@@ -299,7 +314,7 @@ const Chart = () => {
     return (
         <div className="d-flex flex-column h-100 w-100 bg-dark border border-secondary rounded overflow-hidden shadow-lg">
             <div className="p-2 d-flex flex-column flex-md-row justify-content-between align-items-center border-bottom border-secondary gap-2 gap-md-0" style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }}>
-                <h2 className="h6 text-warning mb-0 w-100 w-md-auto text-center text-md-start">{selectedTicker} / Gold</h2>
+                <h2 className="h6 text-warning mb-0 w-100 w-md-auto text-center text-md-start">{selectedTicker} / {referenceMetal}</h2>
                 <div className="d-flex flex-wrap justify-content-center align-items-center gap-2 gap-md-3">
                     {/* Trendline Controls */}
                     <div className="d-flex align-items-center gap-2">

@@ -10,6 +10,7 @@ const useStore = create(
             data: [],        // Full CSV data
             tickers: [],     // Ticker metadata
             isLogScale: false, // Logarithmic scale toggle
+            referenceMetal: 'Gold', // Default reference metal
 
             setSelectedTicker: (ticker) => set({ selectedTicker: ticker }),
             setSearchTerm: (term) => set({ searchTerm: term }),
@@ -17,10 +18,11 @@ const useStore = create(
             setData: (data) => set({ data }),
             setTickers: (tickers) => set({ tickers }),
             setIsLogScale: (isLog) => set({ isLogScale: isLog }),
+            setReferenceMetal: (metal) => set({ referenceMetal: metal }),
         }),
         {
             name: 'stock-storage', // unique name
-            partialize: (state) => ({ selectedTicker: state.selectedTicker, timeRange: state.timeRange, isLogScale: state.isLogScale }), // only persist these
+            partialize: (state) => ({ selectedTicker: state.selectedTicker, timeRange: state.timeRange, isLogScale: state.isLogScale, referenceMetal: state.referenceMetal }), // only persist these
         }
     )
 );
