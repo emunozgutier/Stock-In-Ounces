@@ -132,7 +132,7 @@ const Chart = () => {
         }
         return (
             <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={chartData} margin={{ left: 10, right: 10 }}>
+                <ComposedChart data={chartData} margin={{ left: 10, right: 30 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                     <XAxis
                         dataKey="Date"
@@ -172,7 +172,7 @@ const Chart = () => {
                             position: 'insideRight',
                             fill: '#10B981',
                             style: { textAnchor: 'middle' },
-                            dy: -50 // Adjust vertical position if needed, though 'middle' usually handles center. Recharts positioning can be tricky.
+                            dx: 15 // Offset to prevent overlap with ticks
                         }}
                         tickFormatter={formatUSD}
                         scale={isLogScale ? 'log' : 'linear'}
