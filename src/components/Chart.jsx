@@ -20,8 +20,7 @@ const metalColors = {
     'Gold': '#F59E0B',
     'Silver': '#9CA3AF',
     'Platinum': '#E5E7EB',
-    'Palladium': '#F472B6',
-    'Rhodium': '#818CF8'
+    'Palladium': '#F472B6'
 };
 
 const Chart = () => {

@@ -20,6 +20,10 @@ function App() {
         const tickersData = await tickersResponse.json();
         setTickers(tickersData);
 
+        // Load Metals Data
+        const metalsResponse = await fetch('./metals.json');
+        const metalsData = await metalsResponse.json();
+
         // Load CSV Data
         const response = await fetch('./data.csv');
         const reader = response.body.getReader();
@@ -39,9 +43,34 @@ function App() {
           complete: (results) => {
             // Filter out empty rows if any
             const VALID_DATA = results.data.filter(row => row.Date && row.Ticker);
+
+            // Enrich with Metal Prices
+            // Create a sorted list of metal dates to help find the closest previous date if needed
+            let lastSilver = null;
+            let lastPlatinum = null;
+            let lastPalladium = null;
+
+            const ENRICHED_DATA = VALID_DATA.map(row => {
+              const dateStr = row.Date;
+              const metalPrices = metalsData[dateStr];
+
+              if (metalPrices) {
+                if (metalPrices.Silver) lastSilver = metalPrices.Silver;
+                if (metalPrices.Platinum) lastPlatinum = metalPrices.Platinum;
+                if (metalPrices.Palladium) lastPalladium = metalPrices.Palladium;
+              }
+
+              return {
+                ...row,
+                PriceSilver: lastSilver ? row.PriceUSD / lastSilver : null,
+                PricePlatinum: lastPlatinum ? row.PriceUSD / lastPlatinum : null,
+                PricePalladium: lastPalladium ? row.PriceUSD / lastPalladium : null,
+              };
+            });
+
             // Sort by Date ascending
-            VALID_DATA.sort((a, b) => new Date(a.Date) - new Date(b.Date));
-            setData(VALID_DATA);
+            ENRICHED_DATA.sort((a, b) => new Date(a.Date) - new Date(b.Date));
+            setData(ENRICHED_DATA);
             setLoading(false);
           },
           error: (err) => {

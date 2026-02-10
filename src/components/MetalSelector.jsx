@@ -5,7 +5,6 @@ const metals = [
     { name: 'Silver', symbol: 'Ag', color: '#9CA3AF' },
     { name: 'Platinum', symbol: 'Pt', color: '#E5E7EB' },
     { name: 'Palladium', symbol: 'Pd', color: '#F472B6' },
-    { name: 'Rhodium', symbol: 'Rh', color: '#818CF8' },
 ];
 
 const MetalSelector = () => {
