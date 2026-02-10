@@ -1,12 +1,16 @@
 import useStore from '../../store';
 import TimeScale from './subcomponents2/TimeScale';
+import RoiCalc from './subcomponents2/RoiCalc';
 
 const ChartHeader = ({ trendlineType, setTrendlineType, showRainbow, setShowRainbow, isLogScale, setIsLogScale }) => {
     const { selectedTicker, referenceMetal } = useStore();
 
     return (
         <div className="p-2 d-flex flex-column flex-md-row justify-content-between align-items-center border-bottom border-secondary gap-2 gap-md-0" style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }}>
-            <h2 className="h6 text-warning mb-0 w-100 w-md-auto text-center text-md-start">{selectedTicker} / {referenceMetal}</h2>
+            <div className="d-flex align-items-center w-100 w-md-auto justify-content-center justify-content-md-start">
+                <h2 className="h6 text-warning mb-0">{selectedTicker} / {referenceMetal}</h2>
+                <RoiCalc />
+            </div>
             <div className="d-flex flex-wrap justify-content-center align-items-center gap-2 gap-md-3">
                 {/* Trendline Controls */}
                 <div className="d-flex align-items-center gap-2">
