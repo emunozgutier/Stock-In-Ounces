@@ -17,18 +17,8 @@ import YAxis from './subcomponents1/YAxis';
 import XAxis from './subcomponents1/XAxis';
 import ToolTip from './subcomponents/ToolTip';
 
-import { metals } from './subcomponents1/MetalSelector';
-
-const metalColors = {
-    'Gold': '#F59E0B',
-    'Silver': '#9CA3AF',
-    'Platinum': '#E5E7EB',
-    'Palladium': '#F472B6',
-    'Rhodium': '#818CF8'
-};
-
 const Chart = () => {
-    const { data, selectedTicker, timeRange, isLogScale, setIsLogScale, referenceMetal } = useStore();
+    const { data, selectedTicker, timeRange, isLogScale, setIsLogScale, referenceMetal, metalColors } = useStore();
     const [trendlineType, setTrendlineType] = useState('none');
     const [showRainbow, setShowRainbow] = useState(false);
 

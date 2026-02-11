@@ -11,6 +11,20 @@ const useStore = create(
             tickers: [],     // Ticker metadata
             isLogScale: false, // Logarithmic scale toggle
             referenceMetal: 'Gold', // Default reference metal
+            metals: [
+                { name: 'Gold', symbol: 'Au', color: '#F59E0B' },
+                { name: 'Silver', symbol: 'Ag', color: '#9CA3AF' },
+                { name: 'Platinum', symbol: 'Pt', color: '#E5E7EB' },
+                { name: 'Palladium', symbol: 'Pd', color: '#F472B6' },
+                { name: 'Rhodium', symbol: 'Rh', color: '#818CF8' },
+            ],
+            metalColors: {
+                'Gold': '#F59E0B',
+                'Silver': '#9CA3AF',
+                'Platinum': '#E5E7EB',
+                'Palladium': '#F472B6',
+                'Rhodium': '#818CF8'
+            },
 
             setSelectedTicker: (ticker) => set({ selectedTicker: ticker }),
             setSearchTerm: (term) => set({ searchTerm: term }),
