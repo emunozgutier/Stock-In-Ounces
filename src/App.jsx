@@ -94,13 +94,15 @@ function App() {
   return (
     <div className="bg-dark text-light h-100 d-flex flex-column">
       <div className="container-fluid h-100 d-flex flex-column p-0">
-        <header className="p-2 p-md-3 text-center flex-shrink-0">
-          <h1 className="display-6 fw-bold mb-0">
-            <span className="bg-gradient-gold-text">Stock in Ounces</span>
-          </h1>
-          <p className="small text-secondary mb-2">
-            Track value in <span className="text-warning fw-semibold">{referenceMetal}</span>
-          </p>
+        <header className="p-2 flex-shrink-0 d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2">
+          <div className="text-center text-sm-start">
+            <h1 className="h4 fw-bold mb-0 d-inline-block me-2">
+              <span className="bg-gradient-gold-text">Stock in Ounces</span>
+            </h1>
+            <p className="small text-secondary mb-0 d-inline-block">
+              in <span className="text-warning fw-semibold">{referenceMetal}</span>
+            </p>
+          </div>
           <a
             href="https://github.com/emunozgutier/Stock-In-Ounces"
             target="_blank"
@@ -108,7 +110,7 @@ function App() {
             className="btn btn-sm btn-outline-secondary py-0 px-2 small"
             style={{ fontSize: '0.75rem' }}
           >
-            <Github size={16} className="me-1" /> See it on GitHub
+            <Github size={16} className="me-1" /> GitHub
           </a>
         </header>
 
@@ -121,8 +123,8 @@ function App() {
             </div>
           ) : (
             <div className="d-flex flex-column h-100">
-              <div className="mb-2 d-flex flex-column align-items-center gap-2">
-                <div className="w-100" style={{ maxWidth: '500px' }}>
+              <div className="mb-2 d-flex flex-column flex-sm-row justify-content-center align-items-center gap-2">
+                <div className="search-wrapper">
                   <SearchStock />
                 </div>
                 <MetalSelector />

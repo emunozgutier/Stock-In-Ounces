@@ -6,12 +6,12 @@ const ChartHeader = ({ trendlineType, setTrendlineType, showRainbow, setShowRain
     const { selectedTicker, referenceMetal } = useStore();
 
     return (
-        <div className="p-2 d-flex flex-column flex-md-row justify-content-between align-items-center border-bottom border-secondary gap-2 gap-md-0" style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }}>
-            <div className="d-flex align-items-center w-100 w-md-auto justify-content-center justify-content-md-start">
+        <div className="p-2 d-flex flex-column flex-sm-row justify-content-between align-items-center border-bottom border-secondary gap-2 gap-sm-0" style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }}>
+            <div className="d-flex align-items-center justify-content-center justify-content-sm-start">
                 <h2 className="h6 text-warning mb-0">{selectedTicker} / {referenceMetal}</h2>
                 <RoiCalc />
             </div>
-            <div className="d-flex flex-wrap justify-content-center align-items-center gap-2 gap-md-3">
+            <div className="d-flex flex-wrap justify-content-center align-items-center gap-2 gap-sm-3">
                 {/* Trendline Controls */}
                 <div className="d-flex align-items-center gap-2">
                     <label className="text-secondary small mb-0 me-1 d-none d-sm-block">Trend:</label>
