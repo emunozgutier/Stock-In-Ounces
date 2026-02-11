@@ -1,4 +1,3 @@
-```javascript
 import { useState } from 'react';
 import useStore from '../../store';
 import RoiCalc from './subcomponents2/RoiCalc';
@@ -25,10 +24,10 @@ const ChartHeader = ({ trendlineType, setTrendlineType, showRainbow, setShowRain
                     </div>
                     <MetalSelector />
                 </div>
-                
+
                 <div className="position-relative">
-                    <button 
-                        className={`btn btn - sm ${ showSettings ? 'btn-warning' : 'btn-outline-secondary' } d - flex align - items - center gap - 1`}
+                    <button
+                        className={`btn btn - sm ${showSettings ? 'btn-warning' : 'btn-outline-secondary'} d - flex align - items - center gap - 1`}
                         onClick={() => setShowSettings(!showSettings)}
                         title="Chart Settings"
                     >
@@ -36,8 +35,8 @@ const ChartHeader = ({ trendlineType, setTrendlineType, showRainbow, setShowRain
                     </button>
 
                     {showSettings && (
-                        <div 
-                            className="position-absolute end-0 mt-2 p-3 bg-dark border border-secondary rounded shadow-lg" 
+                        <div
+                            className="position-absolute end-0 mt-2 p-3 bg-dark border border-secondary rounded shadow-lg"
                             style={{ zIndex: 1000, width: 'max-content', minWidth: '200px' }}
                         >
                             <ChartSettings
