@@ -13,7 +13,7 @@ import useStore from '../store';
 import { useMemo, useState } from 'react';
 import ChartHeader from './subcomponents1/ChartHeader';
 import { calculateTrendlines } from '../utils/analysis';
-import YAxis from './subcomponents1/YAxis';
+
 import XAxis from './subcomponents1/XAxis';
 import ToolTip from './subcomponents/ToolTip';
 
