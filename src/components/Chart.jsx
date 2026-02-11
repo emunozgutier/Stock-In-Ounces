@@ -147,6 +147,47 @@ const Chart = () => {
         return processedData;
     }, [data, selectedTicker, timeRange, isLogScale, referenceMetal, trendlineType]);
 
+    // Determine the scale for the Y-Axis based on the maximum value in the dataset
+    const metalAxisConfig = useMemo(() => {
+        if (chartData.length === 0) return { scale: 1, unit: 'Ounces', label: 'Oz' };
+
+        const maxVal = Math.max(...chartData.map(d => Math.abs(d.priceMetal || 0)));
+
+        if (maxVal === 0) return { scale: 1, unit: 'Ounces', label: 'Oz' };
+
+        if (maxVal < 0.001) {
+            return { scale: 1000000, unit: 'micro Oz', label: 'µoz' };
+        } else if (maxVal < 1) {
+            return { scale: 1000, unit: 'milli Oz', label: 'moz' };
+        } else {
+            return { scale: 1, unit: 'Ounces', label: 'oz' };
+        }
+    }, [chartData]);
+
+    const formatMetalAxisTick = (value) => {
+        if (viewMode !== 'units') return `${value.toFixed(0)}%`;
+        if (value === 0) return "0";
+        return (value * metalAxisConfig.scale).toPrecision(4);
+    };
+
+    const formatMetalTooltip = (value) => {
+        if (viewMode !== 'units') return `${value.toFixed(2)}%`;
+        if (value === 0 || value === null) return "0 oz";
+        const absValue = Math.abs(value);
+
+        if (absValue >= 1) {
+            return `${value.toPrecision(4)} oz`;
+        } else if (absValue >= 0.001) {
+            return `${(value * 1000).toPrecision(4)} m oz`;
+        } else {
+            return `${(value * 1000000).toPrecision(4)} µ oz`;
+        }
+    };
+
+    const formatUSD = (value) => {
+        if (viewMode !== 'units') return `${value.toFixed(2)}%`;
+        return `$${value.toFixed(2)}`;
+    };
 
     const renderContent = () => {
         if (!selectedTicker) {
