@@ -1,8 +1,6 @@
 import {
     LineChart,
     Line,
-    XAxis,
-    YAxis,
     CartesianGrid,
     Tooltip,
     Legend,
@@ -14,6 +12,7 @@ import { useMemo, useState } from 'react';
 import ChartHeader from './subcomponents1/ChartHeader';
 import { calculateTrendlines } from '../utils/analysis';
 
+import YAxis from './subcomponents1/YAxis';
 import XAxis from './subcomponents1/XAxis';
 import ToolTip from './subcomponents/ToolTip';
 
@@ -21,6 +20,7 @@ const Chart = () => {
     const { data, selectedTicker, timeRange, isLogScale, setIsLogScale, referenceMetal, metalColors } = useStore();
     const [trendlineType, setTrendlineType] = useState('none');
     const [showRainbow, setShowRainbow] = useState(false);
+    const [viewMode, setViewMode] = useState('units'); // 'units', 'relative', 'absolute'
 
     const chartData = useMemo(() => {
         if (!data || !selectedTicker) return [];
@@ -65,16 +65,51 @@ const Chart = () => {
             // Merge results
             return metalTrendData.map((d, i) => {
                 const usdD = usdTrendData[i];
+                let priceMetal = d[metalKey] || 0;
+                let priceUSD = d.PriceUSD || 0;
+
+                // View Mode Calculation
+                if (viewMode !== 'units') {
+                    // Determine base price
+                    let startMetal = 1;
+                    let startUSD = 1;
+
+                    if (viewMode === 'relative' && filteredData.length > 0) {
+                        // Relative to start of selected range
+                        startMetal = filteredData[0][metalKey] || 1;
+                        startUSD = filteredData[0].PriceUSD || 1;
+                    } else if (viewMode === 'absolute') {
+                        // Absolute from inception (requires full data access or assuming first item in `data` for this ticker is inception)
+                        // simpler approach: use the first item of the currently filtered data IF timeRange is Max, 
+                        // OR we need to find the global first item for this ticker. 
+                        // Let's grab the global first item for this ticker from `data`.
+                        const tickerData = data.filter(item => item.Ticker === selectedTicker);
+                        // Sort just in case
+                        tickerData.sort((a, b) => new Date(a.Date) - new Date(b.Date));
+                        if (tickerData.length > 0) {
+                            startMetal = tickerData[0][metalKey] || 1;
+                            startUSD = tickerData[0].PriceUSD || 1;
+                        }
+                    }
+
+                    priceMetal = ((priceMetal - startMetal) / startMetal) * 100;
+                    priceUSD = ((priceUSD - startUSD) / startUSD) * 100;
+                }
+
                 return {
                     ...d,
                     // Metal Trends (mapped to generic keys for chart)
-                    priceMetal: d[metalKey] || 0, // Ensure value exists
+                    priceMetal: priceMetal,
+                    // USD Trends
+                    PriceUSD: priceUSD,
+
+                    // Pass through trendlines (raw values for now, disabling if not in units mode might be safer but let's leave them)
                     trendMetal: d.trendline,
                     trendMetalTop10: d.trendTop10,
                     trendMetalTop20: d.trendTop20,
                     trendMetalBottom20: d.trendBottom20,
                     trendMetalBottom10: d.trendBottom10,
-                    // USD Trends
+
                     trendUSD: usdD.trendline,
                     trendUSDTop10: usdD.trendTop10,
                     trendUSDTop20: usdD.trendTop20,
@@ -84,13 +119,42 @@ const Chart = () => {
             });
         }
 
-        // If no trendlines, still map the metal price to a generic key for easier rendering
-        return filteredData.map(d => ({
-            ...d,
-            priceMetal: d[`Price${referenceMetal}`] || 0
-        }));
+        // If no trendlines
+        if (filteredData.length > 0) {
+            let startMetal = 1;
+            let startUSD = 1;
 
-    }, [data, selectedTicker, timeRange, trendlineType, referenceMetal]);
+            if (viewMode === 'relative') {
+                startMetal = filteredData[0][`Price${referenceMetal}`] || 1;
+                startUSD = filteredData[0].PriceUSD || 1;
+            } else if (viewMode === 'absolute') {
+                const tickerData = data.filter(item => item.Ticker === selectedTicker);
+                tickerData.sort((a, b) => new Date(a.Date) - new Date(b.Date));
+                if (tickerData.length > 0) {
+                    startMetal = tickerData[0][`Price${referenceMetal}`] || 1;
+                    startUSD = tickerData[0].PriceUSD || 1;
+                }
+            }
+
+            return filteredData.map(d => {
+                let pm = d[`Price${referenceMetal}`] || 0;
+                let pu = d.PriceUSD || 0;
+
+                if (viewMode !== 'units') {
+                    pm = ((pm - startMetal) / startMetal) * 100;
+                    pu = ((pu - startUSD) / startUSD) * 100;
+                }
+
+                return {
+                    ...d,
+                    priceMetal: pm,
+                    PriceUSD: pu
+                };
+            });
+        }
+        return [];
+
+    }, [data, selectedTicker, timeRange, trendlineType, referenceMetal, viewMode]);
 
     // Determine the scale for the Y-Axis based on the maximum value in the dataset
     const metalAxisConfig = useMemo(() => {
@@ -110,11 +174,13 @@ const Chart = () => {
     }, [chartData]);
 
     const formatMetalAxisTick = (value) => {
+        if (viewMode !== 'units') return `${value.toFixed(0)}%`;
         if (value === 0) return "0";
         return (value * metalAxisConfig.scale).toPrecision(4);
     };
 
     const formatMetalTooltip = (value) => {
+        if (viewMode !== 'units') return `${value.toFixed(2)}%`;
         if (value === 0) return "0 oz";
         const absValue = Math.abs(value);
 
@@ -128,6 +194,7 @@ const Chart = () => {
     };
 
     const formatUSD = (value) => {
+        if (viewMode !== 'units') return `${value.toFixed(2)}%`;
         return `$${value.toFixed(2)}`;
     };
 
@@ -246,6 +313,8 @@ const Chart = () => {
                 setShowRainbow={setShowRainbow}
                 isLogScale={isLogScale}
                 setIsLogScale={setIsLogScale}
+                viewMode={viewMode}
+                setViewMode={setViewMode}
             />
 
             <div className="flex-grow-1 min-h-0 w-100 p-2 position-relative">

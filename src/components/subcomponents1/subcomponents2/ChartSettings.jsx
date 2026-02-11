@@ -1,9 +1,9 @@
 import React from 'react';
 import TimeScale from './TimeScale';
 
-const ChartSettings = ({ trendlineType, setTrendlineType, showRainbow, setShowRainbow, isLogScale, setIsLogScale }) => {
+const ChartSettings = ({ trendlineType, setTrendlineType, showRainbow, setShowRainbow, isLogScale, setIsLogScale, viewMode, setViewMode }) => {
     return (
-        <div className="d-flex flex-wrap justify-content-center align-items-center gap-2 gap-sm-3">
+        <div className="d-flex flex-nowrap align-items-center gap-2 gap-sm-3">
             {/* Trendline Controls */}
             <div className="d-flex align-items-center gap-2">
                 <label className="text-secondary small mb-0 me-1 d-none d-sm-block">Trend:</label>
@@ -49,6 +49,20 @@ const ChartSettings = ({ trendlineType, setTrendlineType, showRainbow, setShowRa
                 <label className="form-check-label text-secondary small d-none d-md-block" htmlFor="logScaleSwitch" style={{ cursor: 'pointer' }}>
                     Log Scale
                 </label>
+            </div>
+
+            <div className="d-flex align-items-center gap-2">
+                <label className="text-secondary small mb-0 me-1 d-none d-sm-block">View:</label>
+                <select
+                    className="form-select form-select-sm bg-dark text-light border-secondary"
+                    style={{ width: 'auto', paddingRight: '2rem' }}
+                    value={viewMode}
+                    onChange={(e) => setViewMode(e.target.value)}
+                >
+                    <option value="units">Units</option>
+                    <option value="relative">Rel %</option>
+                    <option value="absolute">Abs %</option>
+                </select>
             </div>
             <TimeScale />
         </div>

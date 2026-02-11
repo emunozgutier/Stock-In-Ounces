@@ -2,8 +2,6 @@ import { useEffect, useState } from 'react';
 import Papa from 'papaparse';
 import { Github } from 'lucide-react';
 import useStore from './store';
-import SearchStock from './components/SearchStock';
-import MetalSelector from './components/subcomponents1/MetalSelector';
 import Chart from './components/Chart';
 import './App.css';
 
@@ -123,12 +121,6 @@ function App() {
             </div>
           ) : (
             <div className="d-flex flex-column h-100">
-              <div className="mb-2 d-flex flex-column flex-sm-row justify-content-center align-items-center gap-2">
-                <div className="search-wrapper">
-                  <SearchStock />
-                </div>
-                <MetalSelector />
-              </div>
               <div className="flex-grow-1 min-h-0">
                 <Chart />
               </div>

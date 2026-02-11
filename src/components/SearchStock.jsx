@@ -31,8 +31,8 @@ const SearchStock = () => {
                 </span>
                 <input
                     type="text"
-                    className="form-control bg-dark border-secondary text-light placeholder-secondary focus-ring focus-ring-warning"
-                    placeholder="Search by Ticker or Name..."
+                    className="form-control bg-dark border-secondary text-light placeholder-white focus-ring focus-ring-warning"
+                    placeholder="Search for stock"
                     value={query}
                     onChange={(e) => {
                         setQuery(e.target.value);
