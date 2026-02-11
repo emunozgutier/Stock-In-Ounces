@@ -13,6 +13,9 @@ import useStore from '../store';
 import { useMemo, useState } from 'react';
 import ChartHeader from './subcomponents1/ChartHeader';
 import { calculateTrendlines } from '../utils/analysis';
+import YAxis from './subcomponents1/YAxis';
+import XAxis from './subcomponents1/XAxis';
+import ToolTip from './subcomponents/ToolTip';
 
 import { metals } from './subcomponents1/MetalSelector';
 
@@ -150,51 +153,26 @@ const Chart = () => {
             <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={chartData} margin={{ left: 10, right: 30 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                    <XAxis
-                        dataKey="Date"
-                        stroke="#9CA3AF"
-                        tickFormatter={(str) => {
-                            const date = new Date(str);
-                            if (timeRange === '1Y') {
-                                return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-                            }
-                            return date.toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
-                        }}
-                        minTickGap={30}
-                    />
+                    <XAxis timeRange={timeRange} />
                     <YAxis
-                        yAxisId="left"
-                        stroke={metalColors[referenceMetal]}
-                        width={80} // Increased width to prevent overlap
-                        label={{
-                            value: `Price (${metalAxisConfig.unit} ${referenceMetal})`,
-                            angle: -90,
-                            position: 'insideLeft',
-                            fill: metalColors[referenceMetal],
-                            style: { textAnchor: 'middle' }
-                        }}
-                        tickFormatter={formatMetalAxisTick}
-                        scale={isLogScale ? 'log' : 'linear'}
-                        domain={['auto', 'auto']}
+                        referenceMetal={referenceMetal}
+                        metalColors={metalColors}
+                        metalAxisConfig={metalAxisConfig}
+                        isLogScale={isLogScale}
+                        formatMetalAxisTick={formatMetalAxisTick}
+                        formatUSD={formatUSD}
                     />
-                    <YAxis
-                        yAxisId="right"
-                        orientation="right"
-                        stroke="#10B981"
-                        width={80} // Increased width for right axis too
-                        label={{
-                            value: 'Price (USD)',
-                            angle: 90,
-                            position: 'insideRight',
-                            fill: '#10B981',
-                            style: { textAnchor: 'middle' },
-                            dx: 15 // Offset to prevent overlap with ticks
-                        }}
-                        tickFormatter={formatUSD}
-                        scale={isLogScale ? 'log' : 'linear'}
-                        domain={['auto', 'auto']}
+                    <Tooltip
+                        content={(props) => (
+                            <ToolTip
+                                {...props}
+                                referenceMetal={referenceMetal}
+                                metalColors={metalColors}
+                                formatMetalTooltip={formatMetalTooltip}
+                                formatUSD={formatUSD}
+                            />
+                        )}
                     />
-                    <Tooltip content={<CustomTooltip />} />
                     <Legend wrapperStyle={{ color: '#adb5bd' }} />
                     <Line
                         yAxisId="left"
@@ -268,48 +246,6 @@ const Chart = () => {
         );
     };
 
-    const CustomTooltip = ({ active, payload, label }) => {
-        if (active && payload && payload.length) {
-            // payload order varies, find by name/dataKey
-            const metalItem = payload.find(p => p.dataKey === 'priceMetal');
-            const usdItem = payload.find(p => p.dataKey === 'PriceUSD');
-
-            const priceMetal = metalItem ? metalItem.value : 0;
-            const priceUSD = usdItem ? usdItem.value : 0;
-
-            // Calculate Metal Price (USD per Oz)
-            // Asset Price (USD) = Asset Price (Metal Oz) * Metal Price (USD/Oz)
-            // So: Metal Price (USD/Oz) = Asset Price (USD) / Asset Price (Metal Oz)
-            let metalPriceUSD = 0;
-            if (priceMetal > 0) {
-                metalPriceUSD = priceUSD / priceMetal;
-            }
-
-            return (
-                <div className="custom-tooltip bg-dark p-2 border border-secondary rounded shadow-sm" style={{ backgroundColor: '#212529', minWidth: '200px' }}>
-                    <p className="label text-light mb-2 fw-bold border-bottom border-secondary pb-1">
-                        {new Date(label).toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
-                    </p>
-                    <div className="d-flex justify-content-between mb-1">
-                        <span style={{ color: metalColors[referenceMetal] }}>Price in {referenceMetal}:</span>
-                        <span className="fw-mono text-light">{formatMetalTooltip(priceMetal)}</span>
-                    </div>
-                    <div className="d-flex justify-content-between mb-1">
-                        <span style={{ color: '#10B981' }}>Price in USD:</span>
-                        <span className="fw-mono text-light">{formatUSD(priceUSD)}</span>
-                    </div>
-                    {metalPriceUSD > 0 && (
-                        <div className="d-flex justify-content-between mt-2 pt-2 border-top border-secondary">
-                            <span className="text-warning small fst-italic">1 Oz {referenceMetal}:</span>
-                            <span className="fw-mono text-light small">{formatUSD(metalPriceUSD)}</span>
-                        </div>
-                    )}
-                </div>
-            );
-        }
-
-        return null;
-    };
 
     return (
         <div className="d-flex flex-column h-100 w-100 bg-dark border border-secondary rounded overflow-hidden shadow-lg">
