@@ -8,7 +8,7 @@ import {
     ComposedChart
 } from 'recharts';
 import useStore from '../store';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react'; // Added useEffect
 import ChartHeader from './subcomponents1/ChartHeader';
 import { calculateTrendlines } from '../utils/analysis';
 
@@ -21,6 +21,16 @@ const Chart = () => {
     const [trendlineType, setTrendlineType] = useState('none');
     const [showRainbow, setShowRainbow] = useState(false);
     const [viewMode, setViewMode] = useState('units'); // 'units', 'relative', 'absolute'
+
+    // Mobile Detection
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+    const [activeAxis, setActiveAxis] = useState('metal'); // 'metal' or 'usd'
+
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth < 768);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     const chartData = useMemo(() => {
         if (!data || !selectedTicker) return [];
@@ -54,149 +64,89 @@ const Chart = () => {
             }
         }
 
-        // Calculate Trendlines if enabled
-        if (trendlineType !== 'none' && filteredData.length > 1) {
-            const metalKey = `Price${referenceMetal}`;
-            // Calculate Metal Trends
-            const metalTrendData = calculateTrendlines(filteredData, trendlineType, metalKey);
-            // Calculate USD Trends
-            const usdTrendData = calculateTrendlines(filteredData, trendlineType, 'PriceUSD');
+        // Prepare data for chart
+        const metalKey = `Price${referenceMetal}`;
+        let processedData = filteredData.map((item) => {
+            const date = new Date(item.Date);
+            const formattedDate = `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
+            let priceMetal = item[metalKey];
+            let priceUSD = item.PriceUSD;
 
-            // Merge results
-            return metalTrendData.map((d, i) => {
-                const usdD = usdTrendData[i];
-                let priceMetal = d[metalKey] || 0;
-                let priceUSD = d.PriceUSD || 0;
-
-                // View Mode Calculation
-                if (viewMode !== 'units') {
-                    // Determine base price
-                    let startMetal = 1;
-                    let startUSD = 1;
-
-                    if (viewMode === 'relative' && filteredData.length > 0) {
-                        // Relative to start of selected range
-                        startMetal = filteredData[0][metalKey] || 1;
-                        startUSD = filteredData[0].PriceUSD || 1;
-                    } else if (viewMode === 'absolute') {
-                        // Absolute from inception (requires full data access or assuming first item in `data` for this ticker is inception)
-                        // simpler approach: use the first item of the currently filtered data IF timeRange is Max, 
-                        // OR we need to find the global first item for this ticker. 
-                        // Let's grab the global first item for this ticker from `data`.
-                        const tickerData = data.filter(item => item.Ticker === selectedTicker);
-                        // Sort just in case
-                        tickerData.sort((a, b) => new Date(a.Date) - new Date(b.Date));
-                        if (tickerData.length > 0) {
-                            startMetal = tickerData[0][metalKey] || 1;
-                            startUSD = tickerData[0].PriceUSD || 1;
-                        }
-                    }
-
-                    priceMetal = ((priceMetal - startMetal) / startMetal) * 100;
-                    priceUSD = ((priceUSD - startUSD) / startUSD) * 100;
-                }
-
-                return {
-                    ...d,
-                    // Metal Trends (mapped to generic keys for chart)
-                    priceMetal: priceMetal,
-                    // USD Trends
-                    PriceUSD: priceUSD,
-
-                    // Pass through trendlines (raw values for now, disabling if not in units mode might be safer but let's leave them)
-                    trendMetal: d.trendline,
-                    trendMetalTop10: d.trendTop10,
-                    trendMetalTop20: d.trendTop20,
-                    trendMetalBottom20: d.trendBottom20,
-                    trendMetalBottom10: d.trendBottom10,
-
-                    trendUSD: usdD.trendline,
-                    trendUSDTop10: usdD.trendTop10,
-                    trendUSDTop20: usdD.trendTop20,
-                    trendUSDBottom20: usdD.trendBottom20,
-                    trendUSDBottom10: usdD.trendBottom10
-                };
-            });
-        }
-
-        // If no trendlines
-        if (filteredData.length > 0) {
-            let startMetal = 1;
-            let startUSD = 1;
-
-            if (viewMode === 'relative') {
-                startMetal = filteredData[0][`Price${referenceMetal}`] || 1;
-                startUSD = filteredData[0].PriceUSD || 1;
-            } else if (viewMode === 'absolute') {
-                const tickerData = data.filter(item => item.Ticker === selectedTicker);
-                tickerData.sort((a, b) => new Date(a.Date) - new Date(b.Date));
-                if (tickerData.length > 0) {
-                    startMetal = tickerData[0][`Price${referenceMetal}`] || 1;
-                    startUSD = tickerData[0].PriceUSD || 1;
-                }
+            // Handle Log Scale Zeroes/Negatives: replace with null so Recharts ignores them
+            if (isLogScale) {
+                priceMetal = priceMetal <= 0 ? null : priceMetal;
+                priceUSD = priceUSD <= 0 ? null : priceUSD;
             }
 
-            return filteredData.map(d => {
-                let pm = d[`Price${referenceMetal}`] || 0;
-                let pu = d.PriceUSD || 0;
+            return {
+                Date: formattedDate,
+                priceMetal: priceMetal,
+                PriceUSD: priceUSD,
+            };
+        });
 
-                if (viewMode !== 'units') {
-                    pm = ((pm - startMetal) / startMetal) * 100;
-                    pu = ((pu - startUSD) / startUSD) * 100;
+        // Calculate Trendlines if enabled
+        if (trendlineType !== 'none' && processedData.length > 1) {
+            // Filter out nulls for trendline calculation to avoid issues
+            const calculableMetalData = processedData.filter(d => d.priceMetal !== null);
+            const calculableUsdData = processedData.filter(d => d.PriceUSD !== null);
+
+            const metalTrendData = calculateTrendlines(calculableMetalData, trendlineType, 'priceMetal');
+            const usdTrendData = calculateTrendlines(calculableUsdData, trendlineType, 'PriceUSD');
+
+            // Map trendline data back to the original processedData structure
+            // This assumes trendline data is ordered by date and aligns with processedData
+            // A more robust solution might involve mapping by date.
+            return processedData.map((d, i) => {
+                const trendMetalEntry = metalTrendData.find(t => t.Date === d.Date);
+                const trendUsdEntry = usdTrendData.find(t => t.Date === d.Date);
+
+                let trendMetal = trendMetalEntry?.trend;
+                let trendMetalTop10 = trendMetalEntry?.top10;
+                let trendMetalTop20 = trendMetalEntry?.top20;
+                let trendMetalBottom20 = trendMetalEntry?.bottom20;
+                let trendMetalBottom10 = trendMetalEntry?.bottom10;
+
+                let trendUSD = trendUsdEntry?.trend;
+                let trendUSDTop10 = trendUsdEntry?.top10;
+                let trendUSDTop20 = trendUsdEntry?.top20;
+                let trendUSDBottom20 = trendUsdEntry?.bottom20;
+                let trendUSDBottom10 = trendUsdEntry?.bottom10;
+
+                // Apply log scale nulling to trendlines as well
+                if (isLogScale) {
+                    trendMetal = trendMetal <= 0 ? null : trendMetal;
+                    trendMetalTop10 = trendMetalTop10 <= 0 ? null : trendMetalTop10;
+                    trendMetalTop20 = trendMetalTop20 <= 0 ? null : trendMetalTop20;
+                    trendMetalBottom20 = trendMetalBottom20 <= 0 ? null : trendMetalBottom20;
+                    trendMetalBottom10 = trendMetalBottom10 <= 0 ? null : trendMetalBottom10;
+
+                    trendUSD = trendUSD <= 0 ? null : trendUSD;
+                    trendUSDTop10 = trendUSDTop10 <= 0 ? null : trendUSDTop10;
+                    trendUSDTop20 = trendUSDTop20 <= 0 ? null : trendUSDTop20;
+                    trendUSDBottom20 = trendUSDBottom20 <= 0 ? null : trendUSDBottom20;
+                    trendUSDBottom10 = trendUSDBottom10 <= 0 ? null : trendUSDBottom10;
                 }
 
                 return {
                     ...d,
-                    priceMetal: pm,
-                    PriceUSD: pu
+                    trendMetal,
+                    trendMetalTop10,
+                    trendMetalTop20,
+                    trendMetalBottom20,
+                    trendMetalBottom10,
+                    trendUSD,
+                    trendUSDTop10,
+                    trendUSDTop20,
+                    trendUSDBottom20,
+                    trendUSDBottom10,
                 };
             });
         }
-        return [];
 
-    }, [data, selectedTicker, timeRange, trendlineType, referenceMetal, viewMode]);
+        return processedData;
+    }, [data, selectedTicker, timeRange, isLogScale, referenceMetal, trendlineType]);
 
-    // Determine the scale for the Y-Axis based on the maximum value in the dataset
-    const metalAxisConfig = useMemo(() => {
-        if (chartData.length === 0) return { scale: 1, unit: 'Ounces', label: 'Oz' };
-
-        const maxVal = Math.max(...chartData.map(d => Math.abs(d.priceMetal)));
-
-        if (maxVal === 0) return { scale: 1, unit: 'Ounces', label: 'Oz' };
-
-        if (maxVal < 0.001) {
-            return { scale: 1000000, unit: 'micro Oz', label: 'µoz' };
-        } else if (maxVal < 1) {
-            return { scale: 1000, unit: 'milli Oz', label: 'moz' };
-        } else {
-            return { scale: 1, unit: 'Ounces', label: 'oz' };
-        }
-    }, [chartData]);
-
-    const formatMetalAxisTick = (value) => {
-        if (viewMode !== 'units') return `${value.toFixed(0)}%`;
-        if (value === 0) return "0";
-        return (value * metalAxisConfig.scale).toPrecision(4);
-    };
-
-    const formatMetalTooltip = (value) => {
-        if (viewMode !== 'units') return `${value.toFixed(2)}%`;
-        if (value === 0) return "0 oz";
-        const absValue = Math.abs(value);
-
-        if (absValue >= 1) {
-            return `${value.toPrecision(4)} oz`;
-        } else if (absValue >= 0.001) {
-            return `${(value * 1000).toPrecision(4)} m oz`;
-        } else {
-            return `${(value * 1000000).toPrecision(4)} µ oz`;
-        }
-    };
-
-    const formatUSD = (value) => {
-        if (viewMode !== 'units') return `${value.toFixed(2)}%`;
-        return `$${value.toFixed(2)}`;
-    };
 
     const renderContent = () => {
         if (!selectedTicker) {
@@ -218,6 +168,8 @@ const Chart = () => {
                         isLogScale={isLogScale}
                         formatMetalAxisTick={formatMetalAxisTick}
                         formatUSD={formatUSD}
+                        activeAxis={activeAxis}
+                        isMobile={isMobile}
                     />
                     <Tooltip
                         content={(props) => (
@@ -231,27 +183,35 @@ const Chart = () => {
                         )}
                     />
                     <Legend wrapperStyle={{ color: '#adb5bd' }} />
-                    <Line
-                        yAxisId="left"
-                        type="monotone"
-                        dataKey="priceMetal"
-                        stroke={metalColors[referenceMetal]}
-                        name={`Price in ${referenceMetal} (${metalAxisConfig.label})`}
-                        dot={false}
-                        strokeWidth={2}
-                    />
-                    <Line
-                        yAxisId="right"
-                        type="monotone"
-                        dataKey="PriceUSD"
-                        stroke="#10B981"
-                        name="Price in USD ($)"
-                        dot={false}
-                        strokeWidth={2}
-                    />
+
+                    {/* Metal Price Line */}
+                    {(!isMobile || activeAxis === 'metal') && (
+                        <Line
+                            yAxisId="left"
+                            type="monotone"
+                            dataKey="priceMetal"
+                            stroke={metalColors[referenceMetal]}
+                            name={`Price in ${referenceMetal} (${metalAxisConfig.label})`}
+                            dot={false}
+                            strokeWidth={2}
+                        />
+                    )}
+
+                    {/* USD Price Line */}
+                    {(!isMobile || activeAxis === 'usd') && (
+                        <Line
+                            yAxisId="right"
+                            type="monotone"
+                            dataKey="PriceUSD"
+                            stroke="#10B981"
+                            name="Price in USD ($)"
+                            dot={false}
+                            strokeWidth={2}
+                        />
+                    )}
 
                     {/* Trendlines - Metal */}
-                    {trendlineType !== 'none' && (
+                    {trendlineType !== 'none' && (!isMobile || activeAxis === 'metal') && (
                         <Line
                             yAxisId="left"
                             type="monotone"
@@ -265,7 +225,7 @@ const Chart = () => {
                     )}
 
                     {/* Trendlines - USD */}
-                    {trendlineType !== 'none' && (
+                    {trendlineType !== 'none' && (!isMobile || activeAxis === 'usd') && (
                         <Line
                             yAxisId="right"
                             type="monotone"
@@ -279,7 +239,7 @@ const Chart = () => {
                     )}
 
                     {/* Rainbow Bands - Metal */}
-                    {trendlineType !== 'none' && showRainbow && (
+                    {trendlineType !== 'none' && showRainbow && (!isMobile || activeAxis === 'metal') && (
                         <>
                             <Line yAxisId="left" type="monotone" dataKey="trendMetalTop10" stroke="#EF4444" dot={false} strokeWidth={1} name={`${referenceMetal} Top 10%`} />
                             <Line yAxisId="left" type="monotone" dataKey="trendMetalTop20" stroke={metalColors[referenceMetal]} dot={false} strokeWidth={1} name={`${referenceMetal} Top 20%`} />
@@ -289,7 +249,7 @@ const Chart = () => {
                     )}
 
                     {/* Rainbow Bands - USD */}
-                    {trendlineType !== 'none' && showRainbow && (
+                    {trendlineType !== 'none' && showRainbow && (!isMobile || activeAxis === 'usd') && (
                         <>
                             <Line yAxisId="right" type="monotone" dataKey="trendUSDTop10" stroke="#EF4444" strokeDasharray="3 3" dot={false} strokeWidth={1} name="USD Top 10%" />
                             <Line yAxisId="right" type="monotone" dataKey="trendUSDTop20" stroke="#F59E0B" strokeDasharray="3 3" dot={false} strokeWidth={1} name="USD Top 20%" />
@@ -315,6 +275,9 @@ const Chart = () => {
                 setIsLogScale={setIsLogScale}
                 viewMode={viewMode}
                 setViewMode={setViewMode}
+                activeAxis={activeAxis}
+                setActiveAxis={setActiveAxis}
+                isMobile={isMobile}
             />
 
             <div className="flex-grow-1 min-h-0 w-100 p-2 position-relative">

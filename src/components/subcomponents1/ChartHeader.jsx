@@ -6,7 +6,7 @@ import SearchStock from '../SearchStock';
 import MetalSelector from './MetalSelector';
 import { Settings } from 'lucide-react';
 
-const ChartHeader = ({ trendlineType, setTrendlineType, showRainbow, setShowRainbow, isLogScale, setIsLogScale, viewMode, setViewMode }) => {
+const ChartHeader = ({ trendlineType, setTrendlineType, showRainbow, setShowRainbow, isLogScale, setIsLogScale, viewMode, setViewMode, activeAxis, setActiveAxis, isMobile }) => {
     const { selectedTicker, referenceMetal } = useStore();
     const [showSettings, setShowSettings] = useState(false);
 
@@ -25,37 +25,49 @@ const ChartHeader = ({ trendlineType, setTrendlineType, showRainbow, setShowRain
                     <MetalSelector />
                 </div>
 
-                <div className="position-relative">
-                    <button
-                        className={`btn btn - sm ${showSettings ? 'btn-warning' : 'btn-outline-secondary'} d - flex align - items - center gap - 1`}
-                        onClick={() => setShowSettings(!showSettings)}
-                        title="Chart Settings"
-                    >
-                        <Settings size={18} />
-                    </button>
-
-                    {showSettings && (
-                        <div
-                            className="position-absolute end-0 mt-2 p-3 bg-dark border border-secondary rounded shadow-lg"
-                            style={{ zIndex: 1000, width: 'max-content', minWidth: '200px' }}
+                <div className="d-flex align-items-center gap-2">
+                    {/* Swap Axis Button - Mobile Only */}
+                    {isMobile && (
+                        <button
+                            className="btn btn-sm btn-outline-info d-flex align-items-center gap-1"
+                            onClick={() => setActiveAxis(activeAxis === 'metal' ? 'usd' : 'metal')}
+                            title="Swap Axis"
                         >
-                            <ChartSettings
-                                trendlineType={trendlineType}
-                                setTrendlineType={setTrendlineType}
-                                showRainbow={showRainbow}
-                                setShowRainbow={setShowRainbow}
-                                isLogScale={isLogScale}
-                                setIsLogScale={setIsLogScale}
-                                viewMode={viewMode}
-                                setViewMode={setViewMode}
-                            />
-                        </div>
+                            {activeAxis === 'metal' ? 'Show USD' : `Show ${referenceMetal}`}
+                        </button>
                     )}
+
+                    <div className="position-relative">
+                        <button
+                            className={`btn btn-sm ${showSettings ? 'btn-warning' : 'btn-outline-secondary'} d-flex align-items-center gap-1`}
+                            onClick={() => setShowSettings(!showSettings)}
+                            title="Chart Settings"
+                        >
+                            <Settings size={18} />
+                        </button>
+
+                        {showSettings && (
+                            <div
+                                className="position-absolute end-0 mt-2 p-3 bg-dark border border-secondary rounded shadow-lg"
+                                style={{ zIndex: 1000, width: 'max-content', minWidth: '200px' }}
+                            >
+                                <ChartSettings
+                                    trendlineType={trendlineType}
+                                    setTrendlineType={setTrendlineType}
+                                    showRainbow={showRainbow}
+                                    setShowRainbow={setShowRainbow}
+                                    isLogScale={isLogScale}
+                                    setIsLogScale={setIsLogScale}
+                                    viewMode={viewMode}
+                                    setViewMode={setViewMode}
+                                />
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>
     );
 };
-
 
 export default ChartHeader;
