@@ -213,6 +213,7 @@ const Chart = () => {
                         isMobile={isMobile}
                     />
                     <Tooltip
+                        position={{ x: 80, y: 0 }}
                         content={(props) => (
                             <ToolTip
                                 {...props}
