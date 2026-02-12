@@ -4,9 +4,11 @@ import { YAxis as RechartsYAxis } from 'recharts';
 const YAxis = ({ referenceMetal, metalColors, metalAxisConfig, isLogScale, formatMetalAxisTick, formatUSD, activeAxis, isMobile, metalNeedsPadding, usdNeedsPadding }) => {
     return (
         <>
-            {(!isMobile || activeAxis === 'metal') && (
+            <>
                 <RechartsYAxis
                     yAxisId="left"
+                    orientation="left"
+                    hide={isMobile && activeAxis !== 'metal'}
                     stroke={metalColors[referenceMetal]}
                     width={isMobile ? 50 : 80} // Reduce width on mobile
                     label={isMobile ? null : {
@@ -26,11 +28,10 @@ const YAxis = ({ referenceMetal, metalColors, metalAxisConfig, isLogScale, forma
                     }}
                     mirror={isMobile} // Mirror on mobile to put ticks inside chart? Or keep standard. Let's start with width reduction.
                 />
-            )}
-            {(!isMobile || activeAxis === 'usd') && (
                 <RechartsYAxis
                     yAxisId="right"
-                    orientation="right"
+                    orientation={isMobile ? 'left' : 'right'}
+                    hide={isMobile && activeAxis !== 'usd'}
                     stroke="#10B981"
                     width={isMobile ? 50 : 80}
                     label={isMobile ? null : {
@@ -50,7 +51,7 @@ const YAxis = ({ referenceMetal, metalColors, metalAxisConfig, isLogScale, forma
                         return [min, max + buffer];
                     }}
                 />
-            )}
+            </>
         </>
     );
 };

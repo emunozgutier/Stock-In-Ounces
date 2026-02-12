@@ -250,33 +250,29 @@ const Chart = () => {
                     <Legend wrapperStyle={{ color: '#adb5bd' }} />
 
                     {/* Metal Price Line */}
-                    {(!isMobile || activeAxis === 'metal') && (
-                        <Line
-                            yAxisId="left"
-                            type="monotone"
-                            dataKey="priceMetal"
-                            stroke={metalColors[referenceMetal]}
-                            name={`Price in ${referenceMetal} (${metalAxisConfig.label})`}
-                            dot={false}
-                            strokeWidth={2}
-                        />
-                    )}
+                    <Line
+                        yAxisId="left"
+                        type="monotone"
+                        dataKey="priceMetal"
+                        stroke={metalColors[referenceMetal]}
+                        name={`Price in ${referenceMetal} (${metalAxisConfig.label})`}
+                        dot={false}
+                        strokeWidth={2}
+                    />
 
                     {/* USD Price Line */}
-                    {(!isMobile || activeAxis === 'usd') && (
-                        <Line
-                            yAxisId="right"
-                            type="monotone"
-                            dataKey="PriceUSD"
-                            stroke="#10B981"
-                            name="Price in USD ($)"
-                            dot={false}
-                            strokeWidth={2}
-                        />
-                    )}
+                    <Line
+                        yAxisId="right"
+                        type="monotone"
+                        dataKey="PriceUSD"
+                        stroke="#10B981"
+                        name="Price in USD ($)"
+                        dot={false}
+                        strokeWidth={2}
+                    />
 
                     {/* Trendlines - Metal */}
-                    {trendlineType !== 'none' && (!isMobile || activeAxis === 'metal') && (
+                    {trendlineType !== 'none' && (
                         <Line
                             yAxisId="left"
                             type="monotone"
@@ -290,7 +286,7 @@ const Chart = () => {
                     )}
 
                     {/* Trendlines - USD */}
-                    {trendlineType !== 'none' && (!isMobile || activeAxis === 'usd') && (
+                    {trendlineType !== 'none' && (
                         <Line
                             yAxisId="right"
                             type="monotone"
@@ -304,7 +300,7 @@ const Chart = () => {
                     )}
 
                     {/* Rainbow Bands - Metal */}
-                    {trendlineType !== 'none' && showRainbow && (!isMobile || activeAxis === 'metal') && (
+                    {trendlineType !== 'none' && showRainbow && (
                         <>
                             <Line yAxisId="left" type="monotone" dataKey="trendMetalTop10" stroke="#EF4444" dot={false} strokeWidth={1} name={`${referenceMetal} Top 10%`} />
                             <Line yAxisId="left" type="monotone" dataKey="trendMetalTop20" stroke={metalColors[referenceMetal]} dot={false} strokeWidth={1} name={`${referenceMetal} Top 20%`} />
@@ -314,7 +310,7 @@ const Chart = () => {
                     )}
 
                     {/* Rainbow Bands - USD */}
-                    {trendlineType !== 'none' && showRainbow && (!isMobile || activeAxis === 'usd') && (
+                    {trendlineType !== 'none' && showRainbow && (
                         <>
                             <Line yAxisId="right" type="monotone" dataKey="trendUSDTop10" stroke="#EF4444" strokeDasharray="3 3" dot={false} strokeWidth={1} name="USD Top 10%" />
                             <Line yAxisId="right" type="monotone" dataKey="trendUSDTop20" stroke="#F59E0B" strokeDasharray="3 3" dot={false} strokeWidth={1} name="USD Top 20%" />
