@@ -189,6 +189,27 @@ const Chart = () => {
         return `$${value.toFixed(2)}`;
     };
 
+    const { metalNeedsPadding, usdNeedsPadding } = useMemo(() => {
+        if (chartData.length === 0) return { metalNeedsPadding: false, usdNeedsPadding: false };
+
+        // Define "Left Zone" (Tooltip area) as first 20% of data points
+        const sampleSize = Math.ceil(chartData.length * 0.2);
+        const leftZoneData = chartData.slice(0, sampleSize);
+
+        // Calculate Metal Padding Requirement
+        const metalMax = Math.max(...chartData.map(d => d.priceMetal || 0));
+        const metalLeftMax = Math.max(...leftZoneData.map(d => d.priceMetal || 0));
+        const metalNeedsPadding = metalLeftMax > (metalMax * 0.85); // If left data is > 85% of peak height
+
+        // Calculate USD Padding Requirement
+        const usdMax = Math.max(...chartData.map(d => d.PriceUSD || 0));
+        const usdLeftMax = Math.max(...leftZoneData.map(d => d.PriceUSD || 0));
+        const usdNeedsPadding = usdLeftMax > (usdMax * 0.85);
+
+        return { metalNeedsPadding, usdNeedsPadding };
+    }, [chartData]);
+
+
     const renderContent = () => {
         if (!selectedTicker) {
             return <div className="d-flex justify-content-center align-items-center h-100 text-secondary">Select a stock to view its price in {referenceMetal}.</div>;
@@ -211,9 +232,11 @@ const Chart = () => {
                         formatUSD={formatUSD}
                         activeAxis={activeAxis}
                         isMobile={isMobile}
+                        metalNeedsPadding={metalNeedsPadding}
+                        usdNeedsPadding={usdNeedsPadding}
                     />
                     <Tooltip
-                        position={{ x: 80, y: 0 }}
+                        position={{ x: isMobile ? 65 : 100, y: 0 }}
                         content={(props) => (
                             <ToolTip
                                 {...props}

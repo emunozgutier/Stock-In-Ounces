@@ -1,7 +1,7 @@
 import React from 'react';
 import { YAxis as RechartsYAxis } from 'recharts';
 
-const YAxis = ({ referenceMetal, metalColors, metalAxisConfig, isLogScale, formatMetalAxisTick, formatUSD, activeAxis, isMobile }) => {
+const YAxis = ({ referenceMetal, metalColors, metalAxisConfig, isLogScale, formatMetalAxisTick, formatUSD, activeAxis, isMobile, metalNeedsPadding, usdNeedsPadding }) => {
     return (
         <>
             {(!isMobile || activeAxis === 'metal') && (
@@ -18,7 +18,12 @@ const YAxis = ({ referenceMetal, metalColors, metalAxisConfig, isLogScale, forma
                     }}
                     tickFormatter={formatMetalAxisTick}
                     scale={isLogScale ? 'log' : 'linear'}
-                    domain={['auto', 'auto']}
+                    domain={([min, max]) => {
+                        if (isLogScale || !metalNeedsPadding) return [min, max];
+                        const range = max - min;
+                        const buffer = range * 0.15; // 15% buffer
+                        return [min, max + buffer];
+                    }}
                     mirror={isMobile} // Mirror on mobile to put ticks inside chart? Or keep standard. Let's start with width reduction.
                 />
             )}
@@ -38,7 +43,12 @@ const YAxis = ({ referenceMetal, metalColors, metalAxisConfig, isLogScale, forma
                     }}
                     tickFormatter={formatUSD}
                     scale={isLogScale ? 'log' : 'linear'}
-                    domain={['auto', 'auto']}
+                    domain={([min, max]) => {
+                        if (isLogScale || !usdNeedsPadding) return [min, max];
+                        const range = max - min;
+                        const buffer = range * 0.15; // 15% buffer only if needed
+                        return [min, max + buffer];
+                    }}
                 />
             )}
         </>
