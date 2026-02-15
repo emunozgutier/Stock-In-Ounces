@@ -35,47 +35,41 @@ const Chart = () => {
     const chartData = useMemo(() => {
         if (!data || !selectedTicker) return [];
 
-        let filteredData = data.filter((item) => item.Ticker === selectedTicker);
+        // Data is now an object: { "1y": [...], "5y": [...] }
+        // Select the array for the current timeRange
+        // If data is not yet fully loaded (e.g. only 1y in FastData), handle gracefully
 
-        // Time Range Filtering
-        if (timeRange !== 'Max' && filteredData.length > 0) {
-            filteredData.sort((a, b) => new Date(a.Date) - new Date(b.Date));
+        let timeFrameData = [];
 
-            const lastDate = new Date(filteredData[filteredData.length - 1].Date);
-            let startDate = new Date(lastDate);
-
-            switch (timeRange) {
-                case '1Y':
-                    startDate.setFullYear(lastDate.getFullYear() - 1);
-                    break;
-                case '5Y':
-                    startDate.setFullYear(lastDate.getFullYear() - 5);
-                    break;
-                case '10Y':
-                    startDate.setFullYear(lastDate.getFullYear() - 10);
-                    break;
-                default:
-                    startDate = new Date(0);
-                    break;
-            }
-
-            if (timeRange !== 'Max') {
-                filteredData = filteredData.filter(item => new Date(item.Date) >= startDate);
-            }
+        if (Array.isArray(data)) {
+            // Legacy fall-back or if data structure is unexpected
+            timeFrameData = data;
+        } else {
+            timeFrameData = data[timeRange.toLowerCase()] || data[timeRange] || [];
         }
 
+        if (timeFrameData.length === 0) return [];
+
         // Prepare data for chart
-        const metalKey = `Price${referenceMetal}`;
-        let processedData = filteredData.map((item) => {
+        // Wide Format: item = { Date: "...", "Gold": 123, "AAPL": 456, ... }
+        let processedData = timeFrameData.map((item) => {
             const date = new Date(item.Date);
             const formattedDate = `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
-            let priceMetal = item[metalKey];
-            let priceUSD = item.PriceUSD;
+
+            let priceUSD = item[selectedTicker];
+            let priceReference = item[referenceMetal];
+
+            // Calculate Price in Metal Terms: Stock Price (USD) / Metal Price (USD)
+            // e.g. AAPL ($150) / Gold ($2000) = 0.075 oz
+            let priceMetal = null;
+            if (priceUSD != null && priceReference != null && priceReference !== 0) {
+                priceMetal = priceUSD / priceReference;
+            }
 
             // Handle Log Scale Zeroes/Negatives: replace with null so Recharts ignores them
             if (isLogScale) {
-                priceMetal = priceMetal <= 0 ? null : priceMetal;
-                priceUSD = priceUSD <= 0 ? null : priceUSD;
+                priceMetal = (priceMetal != null && priceMetal <= 0) ? null : priceMetal;
+                priceUSD = (priceUSD != null && priceUSD <= 0) ? null : priceUSD;
             }
 
             return {
@@ -84,6 +78,9 @@ const Chart = () => {
                 PriceUSD: priceUSD,
             };
         });
+
+        // Filter out entries where both prices are null (optional, cleans up chart)
+        processedData = processedData.filter(d => d.priceMetal !== null || d.PriceUSD !== null);
 
         // Calculate Trendlines if enabled
         if (trendlineType !== 'none' && processedData.length > 1) {
@@ -115,17 +112,17 @@ const Chart = () => {
 
                 // Apply log scale nulling to trendlines as well
                 if (isLogScale) {
-                    trendMetal = trendMetal <= 0 ? null : trendMetal;
-                    trendMetalTop10 = trendMetalTop10 <= 0 ? null : trendMetalTop10;
-                    trendMetalTop20 = trendMetalTop20 <= 0 ? null : trendMetalTop20;
-                    trendMetalBottom20 = trendMetalBottom20 <= 0 ? null : trendMetalBottom20;
-                    trendMetalBottom10 = trendMetalBottom10 <= 0 ? null : trendMetalBottom10;
+                    trendMetal = (trendMetal != null && trendMetal <= 0) ? null : trendMetal;
+                    trendMetalTop10 = (trendMetalTop10 != null && trendMetalTop10 <= 0) ? null : trendMetalTop10;
+                    trendMetalTop20 = (trendMetalTop20 != null && trendMetalTop20 <= 0) ? null : trendMetalTop20;
+                    trendMetalBottom20 = (trendMetalBottom20 != null && trendMetalBottom20 <= 0) ? null : trendMetalBottom20;
+                    trendMetalBottom10 = (trendMetalBottom10 != null && trendMetalBottom10 <= 0) ? null : trendMetalBottom10;
 
-                    trendUSD = trendUSD <= 0 ? null : trendUSD;
-                    trendUSDTop10 = trendUSDTop10 <= 0 ? null : trendUSDTop10;
-                    trendUSDTop20 = trendUSDTop20 <= 0 ? null : trendUSDTop20;
-                    trendUSDBottom20 = trendUSDBottom20 <= 0 ? null : trendUSDBottom20;
-                    trendUSDBottom10 = trendUSDBottom10 <= 0 ? null : trendUSDBottom10;
+                    trendUSD = (trendUSD != null && trendUSD <= 0) ? null : trendUSD;
+                    trendUSDTop10 = (trendUSDTop10 != null && trendUSDTop10 <= 0) ? null : trendUSDTop10;
+                    trendUSDTop20 = (trendUSDTop20 != null && trendUSDTop20 <= 0) ? null : trendUSDTop20;
+                    trendUSDBottom20 = (trendUSDBottom20 != null && trendUSDBottom20 <= 0) ? null : trendUSDBottom20;
+                    trendUSDBottom10 = (trendUSDBottom10 != null && trendUSDBottom10 <= 0) ? null : trendUSDBottom10;
                 }
 
                 return {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import Papa from 'papaparse';
+
 import { Github } from 'lucide-react';
 import useStore from './store';
 import Chart from './components/Chart';
@@ -13,72 +13,29 @@ function App() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        // Load Tickers Metadata
+
+        // 1. Load Tickers Metadata
         const tickersResponse = await fetch('./tickers.json');
         const tickersData = await tickersResponse.json();
         setTickers(tickersData);
 
-        // Load Metals Data
-        const metalsResponse = await fetch('./metals.json');
-        const metalsData = await metalsResponse.json();
-
-        // Load CSV Data
-        const response = await fetch('./data.csv');
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder('utf-8');
-        let csv = '';
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          csv += decoder.decode(value, { stream: true });
-        }
-        csv += decoder.decode(); // End of stream
-
-        Papa.parse(csv, {
-          header: true,
-          dynamicTyping: true,
-          complete: (results) => {
-            // Filter out empty rows if any
-            const VALID_DATA = results.data.filter(row => row.Date && row.Ticker);
-
-            // Enrich with Metal Prices
-            // Create a sorted list of metal dates to help find the closest previous date if needed
-            let lastSilver = null;
-            let lastPlatinum = null;
-            let lastPalladium = null;
-            let lastRhodium = null;
-
-            const ENRICHED_DATA = VALID_DATA.map(row => {
-              const dateStr = row.Date;
-              const metalPrices = metalsData[dateStr];
-
-              if (metalPrices) {
-                if (metalPrices.Silver) lastSilver = metalPrices.Silver;
-                if (metalPrices.Platinum) lastPlatinum = metalPrices.Platinum;
-                if (metalPrices.Palladium) lastPalladium = metalPrices.Palladium;
-                if (metalPrices.Rhodium) lastRhodium = metalPrices.Rhodium;
-              }
-
-              return {
-                ...row,
-                PriceSilver: lastSilver ? row.PriceUSD / lastSilver : null,
-                PricePlatinum: lastPlatinum ? row.PriceUSD / lastPlatinum : null,
-                PricePalladium: lastPalladium ? row.PriceUSD / lastPalladium : null,
-                PriceRhodium: lastRhodium ? row.PriceUSD / lastRhodium : null,
-              };
-            });
-
-            // Sort by Date ascending
-            ENRICHED_DATA.sort((a, b) => new Date(a.Date) - new Date(b.Date));
-            setData(ENRICHED_DATA);
-            setLoading(false);
-          },
-          error: (err) => {
-            console.error("Error parsing CSV:", err);
-            setLoading(false);
+        // 2. Load Fast Data (Instant Render)
+        try {
+          const fastResponse = await fetch('./FastData.json');
+          if (fastResponse.ok) {
+            const fastData = await fastResponse.json();
+            setData(fastData);
+            setLoading(false); // Enable interaction immediately
           }
-        });
+        } catch (e) {
+          console.warn("FastData load failed, waiting for full data", e);
+        }
+
+        // 3. Load Full Data (Lazy)
+        const response = await fetch('./Data.json');
+        const fullData = await response.json();
+        setData(fullData);
+        setLoading(false);
 
       } catch (error) {
         console.error("Error loading data:", error);
