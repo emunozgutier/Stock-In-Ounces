@@ -7,19 +7,24 @@ import MetalSelector from './MetalSelector';
 import { Settings } from 'lucide-react';
 
 const ChartHeader = ({ isLogScale, setIsLogScale, viewMode, setViewMode, activeAxis, setActiveAxis, isMobile }) => {
-    const { selectedTicker, referenceMetal } = useStore();
+    const { selectedTicker, referenceMetal, deviceType } = useStore();
     const [showSettings, setShowSettings] = useState(false);
 
+    const isPhoneHorizontal = deviceType === 'Phone Horizontal';
+
     return (
-        <div className="p-2 d-flex flex-column flex-xl-row justify-content-between align-items-center border-bottom border-secondary gap-2" style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }}>
-            <div className="d-flex align-items-center justify-content-center justify-content-sm-start w-100 w-xl-auto mb-2 mb-xl-0">
-                <h2 className="h6 text-warning mb-0 me-2">{selectedTicker} / {referenceMetal}</h2>
-                <RoiCalc />
+        <div
+            className={`d-flex align-items-center justify-content-between border-bottom border-secondary ${isPhoneHorizontal ? 'p-1 gap-1 flex-row' : 'p-2 flex-column flex-xl-row gap-2'}`}
+            style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }}
+        >
+            <div className={`d-flex align-items-center justify-content-center justify-content-sm-start w-100 w-xl-auto ${isPhoneHorizontal ? 'mb-0' : 'mb-2 mb-xl-0'}`}>
+                <h2 className={`text-warning mb-0 me-2 ${isPhoneHorizontal ? 'h6' : 'h6'}`}>{selectedTicker} / {referenceMetal}</h2>
+                {deviceType === 'Monitor' && <RoiCalc />}
             </div>
 
-            <div className="d-flex flex-column flex-md-row align-items-center gap-2 w-100 w-xl-auto justify-content-center justify-content-xl-end">
-                <div className="d-flex align-items-center gap-2 w-100 w-md-auto justify-content-center">
-                    <div style={{ width: '300px', minWidth: '300px' }}>
+            <div className={`d-flex align-items-center gap-2 w-100 w-xl-auto justify-content-center justify-content-xl-end ${isPhoneHorizontal ? 'flex-row' : 'flex-column flex-md-row'}`}>
+                <div className={`d-flex align-items-center gap-2 w-100 w-md-auto justify-content-center ${isPhoneHorizontal ? 'w-auto' : ''}`}>
+                    <div style={{ width: isPhoneHorizontal ? '150px' : '300px', minWidth: isPhoneHorizontal ? '150px' : '300px' }}>
                         <SearchStock />
                     </div>
                     <MetalSelector />

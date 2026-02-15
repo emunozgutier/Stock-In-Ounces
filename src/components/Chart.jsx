@@ -16,7 +16,7 @@ import XAxis from './subcomponents1/XAxis';
 import ToolTip from "./subcomponents1/ToolTip";
 
 const Chart = () => {
-    const { data, selectedTicker, timeRange, isLogScale, setIsLogScale, referenceMetal, metalColors } = useStore();
+    const { data, selectedTicker, timeRange, isLogScale, setIsLogScale, referenceMetal, metalColors, deviceType } = useStore();
     const [viewMode, setViewMode] = useState('units'); // 'units', 'relative', 'absolute'
 
     // Mobile Detection
@@ -164,18 +164,20 @@ const Chart = () => {
                         metalNeedsPadding={metalNeedsPadding}
                         usdNeedsPadding={usdNeedsPadding}
                     />
-                    <Tooltip
-                        position={{ x: isMobile ? 65 : 100, y: 0 }}
-                        content={(props) => (
-                            <ToolTip
-                                {...props}
-                                referenceMetal={referenceMetal}
-                                metalColors={metalColors}
-                                formatMetalTooltip={formatMetalTooltip}
-                                formatUSD={formatUSD}
-                            />
-                        )}
-                    />
+                    {deviceType !== 'Phone Horizontal' && (
+                        <Tooltip
+                            position={{ x: isMobile ? 65 : 100, y: 0 }}
+                            content={(props) => (
+                                <ToolTip
+                                    {...props}
+                                    referenceMetal={referenceMetal}
+                                    metalColors={metalColors}
+                                    formatMetalTooltip={formatMetalTooltip}
+                                    formatUSD={formatUSD}
+                                />
+                            )}
+                        />
+                    )}
                     <Legend wrapperStyle={{ color: '#adb5bd' }} />
 
                     {/* Metal Price Line */}
