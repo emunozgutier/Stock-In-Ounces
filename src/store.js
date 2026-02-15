@@ -33,6 +33,9 @@ const useStore = create(
             setTickers: (tickers) => set({ tickers }),
             setIsLogScale: (isLog) => set({ isLogScale: isLog }),
             setReferenceMetal: (metal) => set({ referenceMetal: metal }),
+
+            deviceType: 'Monitor', // 'Monitor', 'Phone Vertical', 'Phone Horizontal'
+            setDeviceType: (type) => set({ deviceType: type }),
         }),
         {
             name: 'stock-storage', // unique name

@@ -4,71 +4,62 @@ import { useMemo } from 'react';
 const RoiCalc = () => {
     const { data, selectedTicker, timeRange, referenceMetal } = useStore();
 
-    const calculateStats = (data, priceKey) => {
-        if (data.length === 0) return null;
+    // Helper to calculate growth between two values over a time period
+    const computeGrowth = (startItem, endItem, valStart, valEnd) => {
+        if (valStart == null || valEnd == null || valStart === 0) return null;
 
-        const startItem = data[0];
-        const endItem = data[data.length - 1];
-
-        if (!startItem || !endItem) return null;
-
-        const startPrice = startItem[priceKey];
-        const endPrice = endItem[priceKey];
-
-        if (!startPrice || !endPrice) return null;
-
-        const totalGrowth = ((endPrice - startPrice) / startPrice) * 100;
-
+        const totalGrowth = ((valEnd - valStart) / valStart) * 100;
         const timeDiff = new Date(endItem.Date) - new Date(startItem.Date);
         const days = timeDiff / (1000 * 60 * 60 * 24);
         const years = days / 365.25;
 
         let annualizedGrowth = 0;
-        if (years > 0) {
-            annualizedGrowth = (Math.pow(endPrice / startPrice, 1 / years) - 1) * 100;
+        if (years > 0 && valStart > 0 && valEnd > 0) {
+            annualizedGrowth = (Math.pow(valEnd / valStart, 1 / years) - 1) * 100;
         }
-
         return { totalGrowth, annualizedGrowth, years };
     };
 
     const allStats = useMemo(() => {
         if (!data || !selectedTicker) return null;
 
-        // Filter by Ticker
-        let filteredData = data.filter((item) => item.Ticker === selectedTicker);
-
-        if (filteredData.length === 0) return null;
-
-        // Sort by Date
-        filteredData.sort((a, b) => new Date(a.Date) - new Date(b.Date));
-
-        let startIndex = 0;
-        const lastDate = new Date(filteredData[filteredData.length - 1].Date);
-
-        // Filter by Time Range
-        if (timeRange !== 'Max') {
-            let startDate = new Date(lastDate);
-            switch (timeRange) {
-                case '1Y': startDate.setFullYear(lastDate.getFullYear() - 1); break;
-                case '5Y': startDate.setFullYear(lastDate.getFullYear() - 5); break;
-                case '10Y': startDate.setFullYear(lastDate.getFullYear() - 10); break;
-                default: startDate = new Date(0);
-            }
-
-            // Find first index >= startDate
-            startIndex = filteredData.findIndex(item => new Date(item.Date) >= startDate);
-            if (startIndex === -1) {
-                // If all data is before start date (shouldn't happen with logic above but safety check)
-                return null;
-            }
+        // 1. Get correct timeframe data
+        // Data is now { "1y": [...], "5y": [...] }
+        let timeFrameData = [];
+        if (Array.isArray(data)) {
+            timeFrameData = data;
+        } else {
+            timeFrameData = data[timeRange.toLowerCase()] || data[timeRange] || [];
         }
 
-        const slicedData = filteredData.slice(startIndex);
+        if (timeFrameData.length === 0) return null;
 
-        return {
-            metal: calculateStats(slicedData, `Price${referenceMetal}`),
-            usd: calculateStats(slicedData, 'PriceUSD')
-        };
+        // 2. Select start/end items (data is already sorted)
+        const slicedData = timeFrameData;
+        const startItem = slicedData[0];
+        const endItem = slicedData[slicedData.length - 1];
+
+        if (!startItem || !endItem) return null;
+
+        // 3. Compute USD Growth
+        // PriceUSD is now just the ticker value in the object (e.g. item["VOO"])
+        const startUsd = startItem[selectedTicker];
+        const endUsd = endItem[selectedTicker];
+        const usdStats = computeGrowth(startItem, endItem, startUsd, endUsd);
+
+        // 4. Compute Metal Growth (Ratio)
+        // PriceMetal = PriceUSD / PriceReferenceMetal
+        const startRef = startItem[referenceMetal];
+        const endRef = endItem[referenceMetal];
+
+        let metalStats = null;
+        if (startRef && endRef && startUsd && endUsd) {
+            const startRatio = startUsd / startRef;
+            const endRatio = endUsd / endRef;
+            metalStats = computeGrowth(startItem, endItem, startRatio, endRatio);
+        }
+
+        return { metal: metalStats, usd: usdStats };
 
     }, [data, selectedTicker, timeRange, referenceMetal]);
 

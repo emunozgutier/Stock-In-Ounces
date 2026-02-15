@@ -3,13 +3,77 @@ import { useEffect, useState } from 'react';
 import { Github } from 'lucide-react';
 import useStore from './store';
 import Chart from './components/Chart';
-import './App.css';
 
 function App() {
-  const { setData, setTickers, referenceMetal } = useStore();
+  const { setData, setTickers, referenceMetal, setDeviceType } = useStore();
   const [loading, setLoading] = useState(true);
 
+  // Device Detection Logic
   useEffect(() => {
+    const handleResize = () => {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+
+      let type = 'Monitor';
+      if (width < 1024) {
+        if (height > width) {
+          type = 'Phone Vertical';
+        } else {
+          type = 'Phone Horizontal';
+        }
+      }
+
+      setDeviceType(type);
+      // Optional: console.log for verification
+      // console.log(`Device: ${type} (${width}x${height})`);
+    };
+
+    // Initial check
+    handleResize();
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [setDeviceType]);
+
+  useEffect(() => {
+    // Helper to inflate compact columnar data
+    const inflate = (data) => {
+      if (!data) return {};
+
+      // Handle legacy format (array) or simple object without columns
+      if (Array.isArray(data)) return data;
+
+      // Check if top-level has columns/rows (unlikely for multi-timeframe but possible for single)
+      if (data.columns && data.rows) {
+        const { columns, rows } = data;
+        return rows.map(row => {
+          const obj = {};
+          columns.forEach((col, index) => {
+            obj[col] = row[index];
+          });
+          return obj;
+        });
+      }
+
+      // Handle dictionary of timeframes {"1y": {columns, rows}, ...}
+      const inflated = {};
+      for (const [key, val] of Object.entries(data)) {
+        if (val && val.columns && val.rows) {
+          const { columns, rows } = val;
+          inflated[key] = rows.map(row => {
+            const obj = {};
+            columns.forEach((col, index) => {
+              obj[col] = row[index];
+            });
+            return obj;
+          });
+        } else {
+          inflated[key] = val;
+        }
+      }
+      return inflated;
+    };
+
     const fetchData = async () => {
       try {
         setLoading(true);
@@ -24,7 +88,7 @@ function App() {
           const fastResponse = await fetch('./FastData.json');
           if (fastResponse.ok) {
             const fastData = await fastResponse.json();
-            setData(fastData);
+            setData(inflate(fastData));
             setLoading(false); // Enable interaction immediately
           }
         } catch (e) {
@@ -34,7 +98,7 @@ function App() {
         // 3. Load Full Data (Lazy)
         const response = await fetch('./Data.json');
         const fullData = await response.json();
-        setData(fullData);
+        setData(inflate(fullData));
         setLoading(false);
 
       } catch (error) {
