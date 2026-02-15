@@ -6,7 +6,7 @@ import SearchStock from '../SearchStock';
 import MetalSelector from './MetalSelector';
 import { Settings } from 'lucide-react';
 
-const ChartHeader = ({ trendlineType, setTrendlineType, showRainbow, setShowRainbow, isLogScale, setIsLogScale, viewMode, setViewMode, activeAxis, setActiveAxis, isMobile }) => {
+const ChartHeader = ({ isLogScale, setIsLogScale, viewMode, setViewMode, activeAxis, setActiveAxis, isMobile }) => {
     const { selectedTicker, referenceMetal } = useStore();
     const [showSettings, setShowSettings] = useState(false);
 
@@ -52,10 +52,6 @@ const ChartHeader = ({ trendlineType, setTrendlineType, showRainbow, setShowRain
                                 style={{ zIndex: 1000, width: 'max-content', minWidth: '200px' }}
                             >
                                 <ChartSettings
-                                    trendlineType={trendlineType}
-                                    setTrendlineType={setTrendlineType}
-                                    showRainbow={showRainbow}
-                                    setShowRainbow={setShowRainbow}
                                     isLogScale={isLogScale}
                                     setIsLogScale={setIsLogScale}
                                     viewMode={viewMode}

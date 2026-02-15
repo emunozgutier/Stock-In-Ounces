@@ -8,9 +8,8 @@ import {
     ComposedChart
 } from 'recharts';
 import useStore from '../store';
-import { useMemo, useState, useEffect } from 'react'; // Added useEffect
+import { useMemo, useState, useEffect } from 'react';
 import ChartHeader from './subcomponents1/ChartHeader';
-import { calculateTrendlines } from '../utils/analysis';
 
 import YAxis from './subcomponents1/YAxis';
 import XAxis from './subcomponents1/XAxis';
@@ -18,8 +17,6 @@ import ToolTip from "./subcomponents1/ToolTip";
 
 const Chart = () => {
     const { data, selectedTicker, timeRange, isLogScale, setIsLogScale, referenceMetal, metalColors } = useStore();
-    const [trendlineType, setTrendlineType] = useState('none');
-    const [showRainbow, setShowRainbow] = useState(false);
     const [viewMode, setViewMode] = useState('units'); // 'units', 'relative', 'absolute'
 
     // Mobile Detection
@@ -36,13 +33,9 @@ const Chart = () => {
         if (!data || !selectedTicker) return [];
 
         // Data is now an object: { "1y": [...], "5y": [...] }
-        // Select the array for the current timeRange
-        // If data is not yet fully loaded (e.g. only 1y in FastData), handle gracefully
-
         let timeFrameData = [];
 
         if (Array.isArray(data)) {
-            // Legacy fall-back or if data structure is unexpected
             timeFrameData = data;
         } else {
             timeFrameData = data[timeRange.toLowerCase()] || data[timeRange] || [];
@@ -51,7 +44,6 @@ const Chart = () => {
         if (timeFrameData.length === 0) return [];
 
         // Prepare data for chart
-        // Wide Format: item = { Date: "...", "Gold": 123, "AAPL": 456, ... }
         let processedData = timeFrameData.map((item) => {
             const date = new Date(item.Date);
             const formattedDate = `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
@@ -60,7 +52,6 @@ const Chart = () => {
             let priceReference = item[referenceMetal];
 
             // Calculate Price in Metal Terms: Stock Price (USD) / Metal Price (USD)
-            // e.g. AAPL ($150) / Gold ($2000) = 0.075 oz
             let priceMetal = null;
             if (priceUSD != null && priceReference != null && priceReference !== 0) {
                 priceMetal = priceUSD / priceReference;
@@ -82,67 +73,8 @@ const Chart = () => {
         // Filter out entries where both prices are null (optional, cleans up chart)
         processedData = processedData.filter(d => d.priceMetal !== null || d.PriceUSD !== null);
 
-        // Calculate Trendlines if enabled
-        if (trendlineType !== 'none' && processedData.length > 1) {
-            // Filter out nulls for trendline calculation to avoid issues
-            const calculableMetalData = processedData.filter(d => d.priceMetal !== null);
-            const calculableUsdData = processedData.filter(d => d.PriceUSD !== null);
-
-            const metalTrendData = calculateTrendlines(calculableMetalData, trendlineType, 'priceMetal');
-            const usdTrendData = calculateTrendlines(calculableUsdData, trendlineType, 'PriceUSD');
-
-            // Map trendline data back to the original processedData structure
-            // This assumes trendline data is ordered by date and aligns with processedData
-            // A more robust solution might involve mapping by date.
-            return processedData.map((d, i) => {
-                const trendMetalEntry = metalTrendData.find(t => t.Date === d.Date);
-                const trendUsdEntry = usdTrendData.find(t => t.Date === d.Date);
-
-                let trendMetal = trendMetalEntry?.trend;
-                let trendMetalTop10 = trendMetalEntry?.top10;
-                let trendMetalTop20 = trendMetalEntry?.top20;
-                let trendMetalBottom20 = trendMetalEntry?.bottom20;
-                let trendMetalBottom10 = trendMetalEntry?.bottom10;
-
-                let trendUSD = trendUsdEntry?.trend;
-                let trendUSDTop10 = trendUsdEntry?.top10;
-                let trendUSDTop20 = trendUsdEntry?.top20;
-                let trendUSDBottom20 = trendUsdEntry?.bottom20;
-                let trendUSDBottom10 = trendUsdEntry?.bottom10;
-
-                // Apply log scale nulling to trendlines as well
-                if (isLogScale) {
-                    trendMetal = (trendMetal != null && trendMetal <= 0) ? null : trendMetal;
-                    trendMetalTop10 = (trendMetalTop10 != null && trendMetalTop10 <= 0) ? null : trendMetalTop10;
-                    trendMetalTop20 = (trendMetalTop20 != null && trendMetalTop20 <= 0) ? null : trendMetalTop20;
-                    trendMetalBottom20 = (trendMetalBottom20 != null && trendMetalBottom20 <= 0) ? null : trendMetalBottom20;
-                    trendMetalBottom10 = (trendMetalBottom10 != null && trendMetalBottom10 <= 0) ? null : trendMetalBottom10;
-
-                    trendUSD = (trendUSD != null && trendUSD <= 0) ? null : trendUSD;
-                    trendUSDTop10 = (trendUSDTop10 != null && trendUSDTop10 <= 0) ? null : trendUSDTop10;
-                    trendUSDTop20 = (trendUSDTop20 != null && trendUSDTop20 <= 0) ? null : trendUSDTop20;
-                    trendUSDBottom20 = (trendUSDBottom20 != null && trendUSDBottom20 <= 0) ? null : trendUSDBottom20;
-                    trendUSDBottom10 = (trendUSDBottom10 != null && trendUSDBottom10 <= 0) ? null : trendUSDBottom10;
-                }
-
-                return {
-                    ...d,
-                    trendMetal,
-                    trendMetalTop10,
-                    trendMetalTop20,
-                    trendMetalBottom20,
-                    trendMetalBottom10,
-                    trendUSD,
-                    trendUSDTop10,
-                    trendUSDTop20,
-                    trendUSDBottom20,
-                    trendUSDBottom10,
-                };
-            });
-        }
-
         return processedData;
-    }, [data, selectedTicker, timeRange, isLogScale, referenceMetal, trendlineType]);
+    }, [data, selectedTicker, timeRange, isLogScale, referenceMetal]);
 
     // Determine the scale for the Y-Axis based on the maximum value in the dataset
     const metalAxisConfig = useMemo(() => {
@@ -267,55 +199,6 @@ const Chart = () => {
                         dot={false}
                         strokeWidth={2}
                     />
-
-                    {/* Trendlines - Metal */}
-                    {trendlineType !== 'none' && (
-                        <Line
-                            yAxisId="left"
-                            type="monotone"
-                            dataKey="trendMetal"
-                            stroke={metalColors[referenceMetal]} // Same color but dashed
-                            strokeDasharray="5 5"
-                            name={`Trend (${referenceMetal})`}
-                            dot={false}
-                            strokeWidth={2}
-                        />
-                    )}
-
-                    {/* Trendlines - USD */}
-                    {trendlineType !== 'none' && (
-                        <Line
-                            yAxisId="right"
-                            type="monotone"
-                            dataKey="trendUSD"
-                            stroke="#6EE7B7" // Light Green
-                            strokeDasharray="5 5"
-                            name="Trend (USD)"
-                            dot={false}
-                            strokeWidth={2}
-                        />
-                    )}
-
-                    {/* Rainbow Bands - Metal */}
-                    {trendlineType !== 'none' && showRainbow && (
-                        <>
-                            <Line yAxisId="left" type="monotone" dataKey="trendMetalTop10" stroke="#EF4444" dot={false} strokeWidth={1} name={`${referenceMetal} Top 10%`} />
-                            <Line yAxisId="left" type="monotone" dataKey="trendMetalTop20" stroke={metalColors[referenceMetal]} dot={false} strokeWidth={1} name={`${referenceMetal} Top 20%`} />
-                            <Line yAxisId="left" type="monotone" dataKey="trendMetalBottom20" stroke="#3B82F6" dot={false} strokeWidth={1} name={`${referenceMetal} Bottom 20%`} />
-                            <Line yAxisId="left" type="monotone" dataKey="trendMetalBottom10" stroke="#8B5CF6" dot={false} strokeWidth={1} name={`${referenceMetal} Bottom 10%`} />
-                        </>
-                    )}
-
-                    {/* Rainbow Bands - USD */}
-                    {trendlineType !== 'none' && showRainbow && (
-                        <>
-                            <Line yAxisId="right" type="monotone" dataKey="trendUSDTop10" stroke="#EF4444" strokeDasharray="3 3" dot={false} strokeWidth={1} name="USD Top 10%" />
-                            <Line yAxisId="right" type="monotone" dataKey="trendUSDTop20" stroke="#F59E0B" strokeDasharray="3 3" dot={false} strokeWidth={1} name="USD Top 20%" />
-                            <Line yAxisId="right" type="monotone" dataKey="trendUSDBottom20" stroke="#3B82F6" strokeDasharray="3 3" dot={false} strokeWidth={1} name="USD Bottom 20%" />
-                            <Line yAxisId="right" type="monotone" dataKey="trendUSDBottom10" stroke="#8B5CF6" strokeDasharray="3 3" dot={false} strokeWidth={1} name="USD Bottom 10%" />
-                        </>
-                    )}
-
                 </ComposedChart>
             </ResponsiveContainer>
         );
@@ -325,10 +208,6 @@ const Chart = () => {
     return (
         <div className="d-flex flex-column h-100 w-100 bg-dark border border-secondary rounded overflow-hidden shadow-lg">
             <ChartHeader
-                trendlineType={trendlineType}
-                setTrendlineType={setTrendlineType}
-                showRainbow={showRainbow}
-                setShowRainbow={setShowRainbow}
                 isLogScale={isLogScale}
                 setIsLogScale={setIsLogScale}
                 viewMode={viewMode}
