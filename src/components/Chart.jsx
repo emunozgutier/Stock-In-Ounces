@@ -14,7 +14,7 @@ import { calculateTrendlines } from '../utils/analysis';
 
 import YAxis from './subcomponents1/YAxis';
 import XAxis from './subcomponents1/XAxis';
-import ToolTip from './subcomponents/ToolTip';
+import ToolTip from "./subcomponents1/ToolTip";
 
 const Chart = () => {
     const { data, selectedTicker, timeRange, isLogScale, setIsLogScale, referenceMetal, metalColors } = useStore();
