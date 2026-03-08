@@ -119,7 +119,7 @@ function App() {
               <span className="bg-gradient-gold-text">Stock in Ounces</span>
             </h1>
             <p className="small text-secondary mb-0 d-inline-block">
-              in <span className="text-warning fw-semibold">{referenceMetal}</span>
+              of <span className="text-warning fw-semibold">{referenceMetal}</span>
             </p>
           </div>
           <a
