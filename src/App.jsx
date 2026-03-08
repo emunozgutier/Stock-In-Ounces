@@ -1,12 +1,27 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import { Github } from 'lucide-react';
 import useStore from './store';
 import Chart from './components/Chart';
 
 function App() {
-  const { setData, setTickers, referenceMetal, setDeviceType } = useStore();
+  const { data, setData, setTickers, referenceMetal, setDeviceType } = useStore();
   const [loading, setLoading] = useState(true);
+
+  // Compute last update date from data
+  const lastUpdate = React.useMemo(() => {
+    if (!data) return null;
+    let records = [];
+    if (Array.isArray(data)) {
+      records = data;
+    } else if (data['1y']) {
+      records = data['1y'];
+    }
+    if (records.length > 0 && records[records.length - 1].Date) {
+      return records[records.length - 1].Date;
+    }
+    return null;
+  }, [data]);
 
   // Device Detection Logic
   useEffect(() => {
@@ -122,15 +137,22 @@ function App() {
               of <span className="text-warning fw-semibold">{referenceMetal}</span>
             </p>
           </div>
-          <a
-            href="https://github.com/emunozgutier/Stock-In-Ounces"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn btn-sm btn-outline-secondary py-0 px-2 small"
-            style={{ fontSize: '0.75rem' }}
-          >
-            <Github size={16} className="me-1" /> GitHub
-          </a>
+          <div className="d-flex align-items-center gap-3">
+            {lastUpdate && (
+              <span className="small text-secondary" style={{ fontSize: '0.75rem' }}>
+                Last Update: {lastUpdate}
+              </span>
+            )}
+            <a
+              href="https://github.com/emunozgutier/Stock-In-Ounces"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-sm btn-outline-secondary py-0 px-2 small"
+              style={{ fontSize: '0.75rem' }}
+            >
+              <Github size={16} className="me-1" /> GitHub
+            </a>
+          </div>
         </header>
 
         <main className="flex-grow-1 d-flex flex-column overflow-hidden px-2 pb-2">
