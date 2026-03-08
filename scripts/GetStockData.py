@@ -89,22 +89,8 @@ def main():
 
     print(f"Total assets to fetch: {len(all_symbols)}")
 
-    # Fetch in chunks to avoid URL length issues or timeouts
-    CHUNK_SIZE = 100
-    all_data_frames = []
-
-    for i in range(0, len(all_symbols), CHUNK_SIZE):
-        chunk = all_symbols[i:i+CHUNK_SIZE]
-        print(f"Downloading chunk {i//CHUNK_SIZE + 1}/{(len(all_symbols)-1)//CHUNK_SIZE + 1} ({len(chunk)} tickers)...")
-        
-        try:
-            df = yf.download(chunk, start=start_date, progress=False, threads=True, group_by='ticker')
-            all_data_frames.append(df)
-            
-        except Exception as e:
-            print(f"Error fetching chunk: {e}")
-
-    print("\nProcessing data into timeframes...")
+    all_keys = list(tickers_map.keys())
+    all_keys.sort()
     
     # Get absolute path to project root (parent of script folder)
     script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -113,21 +99,80 @@ def main():
     
     # Ensure public folder exists
     os.makedirs(public_dir, exist_ok=True)
+    
+    # --- Check Existing Data ---
+    existing_data = {}
+    output_path = os.path.join(public_dir, "Data.json")
+    if os.path.exists(output_path):
+        try:
+            with open(output_path, "r") as f:
+                existing_data = json.load(f)
+            print("Loaded existing Data.json")
+        except Exception as e:
+            print(f"Could not load existing data: {e}")
+
+    existing_lookup = {} # date -> { symbol_label: val }
+    existing_cols_set = set()
+    
+    if existing_data:
+        for tf, tf_data in existing_data.items():
+            cols = tf_data.get("columns", [])
+            if cols:
+                for c in cols[1:]:
+                    existing_cols_set.add(c)
+            
+            for row in tf_data.get("rows", []):
+                date_str = row[0]
+                if date_str not in existing_lookup:
+                    existing_lookup[date_str] = {}
+                for c_idx in range(1, len(cols)):
+                    ticker_label = cols[c_idx]
+                    if c_idx < len(row):
+                        val = row[c_idx]
+                        if val is not None:
+                            existing_lookup[date_str][ticker_label] = val
+
+    new_tickers_added = False
+    for k in all_keys:
+        if k not in existing_cols_set:
+            new_tickers_added = True
+            break
+            
+    dates_to_fetch = []
+    if new_tickers_added:
+        print("New tickers detected or existing data incomplete. Fetching from beginning...")
+        dates_to_fetch = sorted_dates
+    else:
+        for d in sorted_dates:
+            if d not in existing_lookup:
+                dates_to_fetch.append(d)
+
+    # Fetch in chunks to avoid URL length issues or timeouts
+    CHUNK_SIZE = 100
+    all_data_frames = []
+
+    if dates_to_fetch:
+        fetch_start_date = dates_to_fetch[0]
+        print(f"Need to fetch new data starting from {fetch_start_date}...")
+        for i in range(0, len(all_symbols), CHUNK_SIZE):
+            chunk = all_symbols[i:i+CHUNK_SIZE]
+            print(f"Downloading chunk {i//CHUNK_SIZE + 1}/{(len(all_symbols)-1)//CHUNK_SIZE + 1} ({len(chunk)} tickers)...")
+            
+            try:
+                df = yf.download(chunk, start=fetch_start_date, progress=False, threads=True, group_by='ticker')
+                all_data_frames.append(df)
+                
+            except Exception as e:
+                print(f"Error fetching chunk: {e}")
+    else:
+        print("No new dates to fetch. Using fully cached data.")
+
+    print("\nProcessing data into timeframes...")
 
     for tf_label, dates in timeframe_dates.items():
         print(f"Processing {tf_label}...")
         
-        # Columnar Format
-        # Columns: Date, Metal1, Metal2, ..., Ticker1, Ticker2, ...
-        # We need a stable order of columns.
-        
-        # 1. Build Column List
-        # Standardize: Date + Sorted Keys of everything else
-        all_keys = list(tickers_map.keys())
-        all_keys.sort()
-        
         columns = ["Date"] + all_keys
-        
         tf_rows = []
         
         for date_str in dates:
@@ -137,24 +182,27 @@ def main():
             for key in all_keys:
                 symbol = tickers_map[key]
                 val = None
-                found = False
                 
-                # Check dataframes
-                for df in all_data_frames:
-                    if isinstance(df.columns, pd.MultiIndex):
-                        if symbol in df.columns.levels[0]:
-                            try:
-                                if date_str in df.index:
-                                    raw_val = df.loc[date_str][(symbol, "Close")]
-                                    if not pd.isna(raw_val):
-                                        val = round(float(raw_val), 4)
-                                        found = True
-                            except KeyError:
-                                pass
-                    elif isinstance(df.columns, pd.Index):
-                         pass # Single ticker logic omitted as we use group_by='ticker'
+                # 1. Check existing data FIRST
+                if date_str in existing_lookup and key in existing_lookup[date_str]:
+                    val = existing_lookup[date_str][key]
+                else:
+                    found = False
+                    for df in all_data_frames:
+                        if isinstance(df.columns, pd.MultiIndex):
+                            if symbol in df.columns.levels[0]:
+                                try:
+                                    if date_str in df.index:
+                                        raw_val = df.loc[date_str][(symbol, "Close")]
+                                        if not pd.isna(raw_val):
+                                            val = round(float(raw_val), 4)
+                                            found = True
+                                except KeyError:
+                                    pass
+                        elif isinstance(df.columns, pd.Index):
+                             pass # Single ticker logic omitted
 
-                    if found: break
+                        if found: break
                 
                 row_values.append(val)
 
