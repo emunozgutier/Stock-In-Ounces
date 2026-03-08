@@ -12,7 +12,7 @@ const YAxis = ({ referenceMetal, metalColors, metalAxisConfig, isLogScale, forma
                     stroke={metalColors[referenceMetal]}
                     width={isMobile ? 50 : 80} // Reduce width on mobile
                     label={isMobile ? null : {
-                        value: `Price (${metalAxisConfig.unit} ${referenceMetal})`,
+                        value: referenceMetal === 'Inflation Adjusted $' ? 'Price (Adjusted $)' : `Price (${metalAxisConfig.unit} ${referenceMetal})`,
                         angle: -90,
                         position: 'insideLeft',
                         fill: metalColors[referenceMetal],

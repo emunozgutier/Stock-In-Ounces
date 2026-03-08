@@ -54,7 +54,12 @@ const Chart = () => {
             // Calculate Price in Metal Terms: Stock Price (USD) / Metal Price (USD)
             let priceMetal = null;
             if (priceUSD != null && priceReference != null && priceReference !== 0) {
-                priceMetal = priceUSD / priceReference;
+                if (referenceMetal === 'Inflation Adjusted $') {
+                    // priceReference is the multiplier (Latest CPI / Historical CPI)
+                    priceMetal = priceUSD * priceReference;
+                } else {
+                    priceMetal = priceUSD / priceReference;
+                }
             }
 
             // Handle Log Scale Zeroes/Negatives: replace with null so Recharts ignores them
@@ -84,6 +89,10 @@ const Chart = () => {
 
         if (maxVal === 0) return { scale: 1, unit: 'Ounces', label: 'Oz' };
 
+        if (referenceMetal === 'Inflation Adjusted $') {
+            return { scale: 1, unit: 'Dollars', label: '$ (Adj)' };
+        }
+
         if (maxVal < 0.001) {
             return { scale: 1000000, unit: 'micro Oz', label: 'µoz' };
         } else if (maxVal < 1) {
@@ -96,12 +105,18 @@ const Chart = () => {
     const formatMetalAxisTick = (value) => {
         if (viewMode !== 'units') return `${value.toFixed(0)}%`;
         if (value === 0) return "0";
+        if (referenceMetal === 'Inflation Adjusted $') return `$${value.toFixed(0)}`;
         return (value * metalAxisConfig.scale).toPrecision(4);
     };
 
     const formatMetalTooltip = (value) => {
         if (viewMode !== 'units') return `${value.toFixed(2)}%`;
-        if (value === 0 || value === null) return "0 oz";
+        if (value === 0 || value === null) return referenceMetal === 'Inflation Adjusted $' ? "$0" : "0 oz";
+
+        if (referenceMetal === 'Inflation Adjusted $') {
+            return `$${value.toFixed(2)} (Adj)`;
+        }
+
         const absValue = Math.abs(value);
 
         if (absValue >= 1) {
@@ -186,7 +201,7 @@ const Chart = () => {
                         type="monotone"
                         dataKey="priceMetal"
                         stroke={metalColors[referenceMetal]}
-                        name={`Price in ${referenceMetal} (${metalAxisConfig.label})`}
+                        name={referenceMetal === 'Inflation Adjusted $' ? 'Adjusted Price ($)' : `Price in ${referenceMetal} (${metalAxisConfig.label})`}
                         dot={false}
                         strokeWidth={2}
                     />
@@ -197,7 +212,7 @@ const Chart = () => {
                         type="monotone"
                         dataKey="PriceUSD"
                         stroke="#10B981"
-                        name="Price in USD ($)"
+                        name={referenceMetal === 'Inflation Adjusted $' ? 'Nominal Price ($)' : "Price in USD ($)"}
                         dot={false}
                         strokeWidth={2}
                     />

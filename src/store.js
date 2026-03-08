@@ -15,11 +15,13 @@ const useStore = create(
                 { name: 'Gold', symbol: 'Au', color: '#F59E0B' },
                 { name: 'Silver', symbol: 'Ag', color: '#9CA3AF' },
                 { name: 'Platinum', symbol: 'Pt', color: '#E5E7EB' },
+                { name: 'Inflation Adjusted $', symbol: '$', color: '#6366F1' },
             ],
             metalColors: {
                 'Gold': '#F59E0B',
                 'Silver': '#9CA3AF',
-                'Platinum': '#E5E7EB'
+                'Platinum': '#E5E7EB',
+                'Inflation Adjusted $': '#6366F1'
             },
 
             setSelectedTicker: (ticker) => set({ selectedTicker: ticker }),

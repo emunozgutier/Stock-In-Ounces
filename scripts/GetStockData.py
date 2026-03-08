@@ -4,6 +4,8 @@ import json
 import os
 import time
 import pandas as pd
+import io
+import urllib.request as request
 from TimeFrame import get_timeframe_dates
 
 # S&P 500 Tickers (Snapshot)
@@ -17,7 +19,8 @@ ASSETS = {
     "Metals": {
         "Gold": "GC=F",
         "Silver": "SI=F",
-        "Platinum": "PL=F"
+        "Platinum": "PL=F",
+        "Inflation Adjusted $": "CPI" # Special key for inflation
     },
     # Indices/ETFs
     "Indices": {
@@ -43,9 +46,51 @@ ASSETS = {
     }
 }
 
+def get_cpi_multipliers():
+    """
+    Fetch CPI data from FRED and return a map of {YYYY-MM: multiplier}.
+    Multiplier = Latest_CPI / Historical_CPI.
+    """
+    url = "https://fred.stlouisfed.org/graph/fredgraph.csv?id=CPIAUCSL"
+    print(f"Fetching CPI data from {url}...")
+    try:
+        # Use urllib for more robust fetching in restricted environments
+        with request.urlopen(url) as response:
+            csv_data = response.read().decode('utf-8')
+            df = pd.read_csv(io.StringIO(csv_data))
+            
+        # Drop rows with NaN CPI values
+        df = df.dropna(subset=['CPIAUCSL'])
+        
+        if df.empty:
+            print("Warning: CPI data is empty.")
+            return {}
+
+        latest_cpi = df['CPIAUCSL'].iloc[-1]
+        
+        # Create a complete range of months from start to latest available month
+        df['observation_date'] = pd.to_datetime(df['observation_date'])
+        df = df.set_index('observation_date').resample('MS').ffill()
+        
+        multipliers = {}
+        for idx, row in df.iterrows():
+            month_key = idx.strftime('%Y-%m')
+            cpi_val = row['CPIAUCSL']
+            if not pd.isna(cpi_val) and cpi_val > 0:
+                multipliers[month_key] = round(latest_cpi / cpi_val, 4)
+                
+        print(f"Loaded {len(multipliers)} CPI data points. Latest CPI: {latest_cpi}")
+        return multipliers
+    except Exception as e:
+        print(f"Error fetching CPI data: {e}")
+        return {}
+
 def main():
     print("Generating TimeFrame dates...")
     timeframe_dates = get_timeframe_dates()
+    
+    # Fetch inflation data
+    cpi_multipliers = get_cpi_multipliers()
     
     final_data = {}
     
@@ -70,7 +115,8 @@ def main():
     # Add Metals
     for name, symbol in ASSETS["Metals"].items():
         tickers_map[name] = symbol
-        all_symbols.append(symbol)
+        if symbol != "CPI":
+            all_symbols.append(symbol)
 
     # Add Crypto
     for name, symbol in ASSETS["Crypto"].items():
@@ -183,8 +229,16 @@ def main():
                 symbol = tickers_map[key]
                 val = None
                 
+                # Special Case: Inflation Adjusted $
+                if key == "Inflation Adjusted $":
+                    month_key = date_str[:7]
+                    val = cpi_multipliers.get(month_key)
+                    # If not found for exact month, try using the latest available in the map
+                    if val is None and cpi_multipliers:
+                        latest_month = sorted(cpi_multipliers.keys())[-1]
+                        val = cpi_multipliers[latest_month]
                 # 1. Check existing data FIRST
-                if date_str in existing_lookup and key in existing_lookup[date_str]:
+                elif date_str in existing_lookup and key in existing_lookup[date_str]:
                     val = existing_lookup[date_str][key]
                 else:
                     found = False
@@ -220,7 +274,7 @@ def main():
     print(f"\nSuccessfully saved full stock data to {output_path}")
 
     # 2. Save Fast Data (FastData.json)
-    # Goal: Gold + VOO (Default Stock) + 1Y (Default Timeframe)
+    # Goal: Gold + VOO (Default Stock) + Inflation Adjusted $ + 1Y (Default Timeframe)
     # Columnar format for consistency
     
     fast_data = {}
@@ -235,16 +289,23 @@ def main():
             date_idx = src_cols.index("Date")
             gold_idx = src_cols.index("Gold")
             voo_idx = src_cols.index("VOO")
+            inflation_idx = src_cols.index("Inflation Adjusted $") if "Inflation Adjusted $" in src_cols else -1
             
             fast_cols = ["Date", "Gold", "VOO"]
+            if inflation_idx != -1:
+                fast_cols.append("Inflation Adjusted $")
+
             fast_rows = []
             
             for row in src_rows:
-                fast_rows.append([
+                row_data = [
                     row[date_idx],
                     row[gold_idx],
                     row[voo_idx]
-                ])
+                ]
+                if inflation_idx != -1:
+                    row_data.append(row[inflation_idx])
+                fast_rows.append(row_data)
                 
             fast_data["1y"] = {
                 "columns": fast_cols,
