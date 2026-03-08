@@ -26,6 +26,7 @@ def get_timeframe_dates():
     now = datetime.now()
     timeframes = {
         "Max": 365 * 50,
+        "30y": 365 * 30,
         "20y": 365 * 20,
         "10y": 365 * 10,
         "5y": 365 * 5,

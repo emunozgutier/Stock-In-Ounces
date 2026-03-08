@@ -2,7 +2,7 @@ import useStore from '../../../store';
 
 const TimeScale = () => {
     const { timeRange, setTimeRange } = useStore();
-    const ranges = ['1Y', '5Y', '10Y', 'Max'];
+    const ranges = ['1Y', '5Y', '10Y', '20Y', '30Y', 'Max'];
 
     return (
         <div className="btn-group btn-group-sm" role="group" aria-label="Time scale selection">
