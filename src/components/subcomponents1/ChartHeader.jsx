@@ -18,7 +18,12 @@ const ChartHeader = ({ isLogScale, setIsLogScale, viewMode, setViewMode, activeA
             style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }}
         >
             <div className={`d-flex align-items-center justify-content-center justify-content-sm-start w-100 w-xl-auto ${isPhoneHorizontal ? 'mb-0' : 'mb-2 mb-xl-0'}`}>
-                <h2 className={`text-warning mb-0 me-2 ${isPhoneHorizontal ? 'h6' : 'h6'}`}>{selectedTicker} / {referenceMetal}</h2>
+                <h2 className={`text-warning mb-0 me-2 ${isPhoneHorizontal ? 'h6' : 'h6'}`}>
+                    {referenceMetal === 'Inflation Adjusted $'
+                        ? `${selectedTicker} (Inflation Adjusted)`
+                        : `${selectedTicker} / ${referenceMetal}`
+                    }
+                </h2>
                 {deviceType === 'Monitor' && <RoiCalc />}
             </div>
 

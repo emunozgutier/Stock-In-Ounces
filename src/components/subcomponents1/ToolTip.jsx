@@ -23,17 +23,26 @@ const ToolTip = ({ active, payload, label, referenceMetal, metalColors, formatMe
                     {new Date(label).toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
                 </p>
                 <div className="d-flex justify-content-between mb-1">
-                    <span style={{ color: metalColors[referenceMetal] }}>Price in {referenceMetal}:</span>
+                    <span style={{ color: metalColors[referenceMetal] }}>
+                        {referenceMetal === 'Inflation Adjusted $' ? 'Adjusted Price:' : `Price in ${referenceMetal}:`}
+                    </span>
                     <span className="fw-mono text-light">{formatMetalTooltip(priceMetal)}</span>
                 </div>
                 <div className="d-flex justify-content-between mb-1">
-                    <span style={{ color: '#10B981' }}>Price in USD:</span>
+                    <span style={{ color: '#10B981' }}>Nominal Price (USD):</span>
                     <span className="fw-mono text-light">{formatUSD(priceUSD)}</span>
                 </div>
-                {metalPriceUSD > 0 && (
+                {priceUSD > 0 && priceMetal > 0 && (
                     <div className="d-flex justify-content-between mt-2 pt-2 border-top border-secondary">
-                        <span className="text-warning small fst-italic">1 Oz {referenceMetal}:</span>
-                        <span className="fw-mono text-light small">{formatUSD(metalPriceUSD)}</span>
+                        <span className="text-warning small fst-italic">
+                            {referenceMetal === 'Inflation Adjusted $' ? 'Inflation Multiplier:' : `1 Oz ${referenceMetal}:`}
+                        </span>
+                        <span className="fw-mono text-light small">
+                            {referenceMetal === 'Inflation Adjusted $'
+                                ? (priceMetal / priceUSD).toFixed(4)
+                                : formatUSD(priceUSD / priceMetal)
+                            }
+                        </span>
                     </div>
                 )}
             </div>

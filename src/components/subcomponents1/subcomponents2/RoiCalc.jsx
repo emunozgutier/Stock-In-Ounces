@@ -54,8 +54,16 @@ const RoiCalc = () => {
 
         let metalStats = null;
         if (startRef && endRef && startUsd && endUsd) {
-            const startRatio = startUsd / startRef;
-            const endRatio = endUsd / endRef;
+            let startRatio, endRatio;
+            if (referenceMetal === 'Inflation Adjusted $') {
+                // referenceMetal value is the multiplier (Latest CPI / Historical CPI)
+                // To get the adjusted price in today's dollars: Price * Multiplier
+                startRatio = startUsd * startRef;
+                endRatio = endUsd * endRef;
+            } else {
+                startRatio = startUsd / startRef;
+                endRatio = endUsd / endRef;
+            }
             metalStats = computeGrowth(startItem, endItem, startRatio, endRatio);
         }
 

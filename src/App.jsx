@@ -131,10 +131,15 @@ function App() {
         <header className="p-2 flex-shrink-0 d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2">
           <div className="text-center text-sm-start">
             <h1 className="h4 fw-bold mb-0 d-inline-block me-2">
-              <span className="bg-gradient-gold-text">Stock in Ounces</span>
+              <span className="bg-gradient-gold-text">
+                {referenceMetal === 'Inflation Adjusted $' ? 'Real Stock Value' : 'Stock in Ounces'}
+              </span>
             </h1>
             <p className="small text-secondary mb-0 d-inline-block">
-              of <span className="text-warning fw-semibold">{referenceMetal}</span>
+              {referenceMetal === 'Inflation Adjusted $'
+                ? 'adjusted for inflation'
+                : <span>of <span className="text-warning fw-semibold">{referenceMetal}</span></span>
+              }
             </p>
           </div>
           <div className="d-flex align-items-center gap-3">

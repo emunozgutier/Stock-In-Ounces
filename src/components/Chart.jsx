@@ -182,6 +182,31 @@ const Chart = () => {
                         metalNeedsPadding={metalNeedsPadding}
                         usdNeedsPadding={usdNeedsPadding}
                     />
+                    {referenceMetal !== 'Inflation Adjusted $' && (
+                        <YAxis
+                            yAxisId="right"
+                            orientation={isMobile ? 'left' : 'right'}
+                            hide={isMobile && activeAxis !== 'usd'}
+                            stroke="#10B981"
+                            width={isMobile ? 50 : 80}
+                            label={isMobile ? null : {
+                                value: 'Price (USD)',
+                                angle: 90,
+                                position: 'insideRight',
+                                fill: '#10B981',
+                                style: { textAnchor: 'middle' },
+                                dx: 15
+                            }}
+                            tickFormatter={formatUSD}
+                            scale={isLogScale ? 'log' : 'linear'}
+                            domain={([min, max]) => {
+                                if (isLogScale || !usdNeedsPadding) return [min, max];
+                                const range = max - min;
+                                const buffer = range * 0.15;
+                                return [min, max + buffer];
+                            }}
+                        />
+                    )}
                     {deviceType !== 'Phone Horizontal' && (
                         <Tooltip
                             position={{ x: isMobile ? 65 : 100, y: 0 }}
@@ -211,7 +236,7 @@ const Chart = () => {
 
                     {/* USD Price Line */}
                     <Line
-                        yAxisId="right"
+                        yAxisId={referenceMetal === 'Inflation Adjusted $' ? "left" : "right"}
                         type="monotone"
                         dataKey="PriceUSD"
                         stroke="#10B981"
