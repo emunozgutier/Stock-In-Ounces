@@ -158,8 +158,11 @@ const Chart = () => {
         if (!selectedTicker) {
             return <div className="d-flex justify-content-center align-items-center h-100 text-secondary">Select a stock to view its price in {referenceMetal}.</div>;
         }
+
+        const isDataEmpty = !data || (Array.isArray(data) ? data.length === 0 : Object.keys(data).length === 0);
+
         if (chartData.length === 0) {
-            if (data.length === 0) return <div className="d-flex justify-content-center align-items-center h-100 text-secondary">Loading data...</div>;
+            if (isDataEmpty) return <div className="d-flex justify-content-center align-items-center h-100 text-secondary">Loading data...</div>;
             return <div className="d-flex justify-content-center align-items-center h-100 text-secondary">No data available for {selectedTicker} in this range.</div>;
         }
         return (
