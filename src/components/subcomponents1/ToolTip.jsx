@@ -25,17 +25,20 @@ const ToolTip = ({ active, payload, label, referenceMetal, metalColors, formatMe
                         {referenceMetal === 'Inflation Adjusted $' ? 'Adjusted Price:' : `Price in ${referenceMetal}:`}
                     </span>
                     <span className="fw-mono text-light">
-                        {(() => {
-                            const formatted = formatMetalTooltip(priceMetal);
-                            if (formatted.includes('Goldbacks')) {
-                                return <>{formatted.split('Goldbacks')[0]} <a href="https://goldback.com" target="_blank" rel="noopener noreferrer" className="text-info text-decoration-none">Goldbacks</a></>;
-                            } else if (formatted.includes('Platinumbacks')) {
-                                return <>{formatted.split('Platinumbacks')[0]} <a href="https://goldback.com" target="_blank" rel="noopener noreferrer" className="text-info text-decoration-none">Platinumbacks</a></>;
-                            }
-                            return formatted;
-                        })()}
+                        {formatMetalTooltip(priceMetal)}
                     </span>
                 </div>
+                {['Gold', 'Platinum'].includes(referenceMetal) && priceMetal > 0 && (
+                    <div className="d-flex justify-content-between mb-1">
+                        <span style={{ color: metalColors[referenceMetal] }}>
+                            Price in {referenceMetal}backs:
+                        </span>
+                        <span className="fw-mono text-light">
+                            <a href="https://goldback.com" target="_blank" rel="noopener noreferrer" className="text-info text-decoration-none me-1">{referenceMetal === 'Gold' ? '₲' : 'PB'}</a>
+                            {(priceMetal * 1000).toPrecision(4)}
+                        </span>
+                    </div>
+                )}
                 <div className="d-flex justify-content-between mb-1">
                     <span style={{ color: '#10B981' }}>Nominal Price (USD):</span>
                     <span className="fw-mono text-light">{formatUSD(priceUSD)}</span>

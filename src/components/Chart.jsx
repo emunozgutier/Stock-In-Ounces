@@ -121,17 +121,7 @@ const Chart = () => {
             return `$${value.toFixed(2)} (Adj)`;
         }
 
-        const absValue = Math.abs(value);
-
-        if (absValue >= 1) {
-            return `${value.toPrecision(4)} oz`;
-        } else if (absValue >= 0.001) {
-            if (referenceMetal === 'Gold') return `${(value * 1000).toPrecision(4)} GB`;
-            if (referenceMetal === 'Platinum') return `${(value * 1000).toPrecision(4)} PB`;
-            return `${(value * 1000).toPrecision(4)} m oz`;
-        } else {
-            return `${(value * 1000000).toPrecision(4)} µ oz`;
-        }
+        return `${Number(value).toPrecision(4)} oz`;
     };
 
     const formatUSD = (value) => {
