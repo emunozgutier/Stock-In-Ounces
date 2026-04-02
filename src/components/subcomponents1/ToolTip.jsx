@@ -10,8 +10,6 @@ const ToolTip = ({ active, payload, label, referenceMetal, metalColors, formatMe
         const priceUSD = usdItem ? usdItem.value : 0;
 
         // Calculate Metal Price (USD per Oz)
-        // Asset Price (USD) = Asset Price (Metal Oz) * Metal Price (USD/Oz)
-        // So: Metal Price (USD/Oz) = Asset Price (USD) / Asset Price (Metal Oz)
         let metalPriceUSD = 0;
         if (priceMetal > 0) {
             metalPriceUSD = priceUSD / priceMetal;
@@ -26,7 +24,17 @@ const ToolTip = ({ active, payload, label, referenceMetal, metalColors, formatMe
                     <span style={{ color: metalColors[referenceMetal] }}>
                         {referenceMetal === 'Inflation Adjusted $' ? 'Adjusted Price:' : `Price in ${referenceMetal}:`}
                     </span>
-                    <span className="fw-mono text-light">{formatMetalTooltip(priceMetal)}</span>
+                    <span className="fw-mono text-light">
+                        {(() => {
+                            const formatted = formatMetalTooltip(priceMetal);
+                            if (formatted.includes('Goldbacks')) {
+                                return <>{formatted.split('Goldbacks')[0]} <a href="https://goldback.com" target="_blank" rel="noopener noreferrer" className="text-info text-decoration-none">Goldbacks</a></>;
+                            } else if (formatted.includes('Platinumbacks')) {
+                                return <>{formatted.split('Platinumbacks')[0]} <a href="https://goldback.com" target="_blank" rel="noopener noreferrer" className="text-info text-decoration-none">Platinumbacks</a></>;
+                            }
+                            return formatted;
+                        })()}
+                    </span>
                 </div>
                 <div className="d-flex justify-content-between mb-1">
                     <span style={{ color: '#10B981' }}>Nominal Price (USD):</span>
@@ -35,7 +43,13 @@ const ToolTip = ({ active, payload, label, referenceMetal, metalColors, formatMe
                 {priceUSD > 0 && priceMetal > 0 && (
                     <div className="d-flex justify-content-between mt-2 pt-2 border-top border-secondary">
                         <span className="text-warning small fst-italic">
-                            {referenceMetal === 'Inflation Adjusted $' ? 'Inflation Multiplier:' : `1 Oz ${referenceMetal}:`}
+                            {(() => {
+                                if (referenceMetal === 'Inflation Adjusted $') return 'Inflation Multiplier:';
+                                const absolutePrice = Math.abs(priceMetal);
+                                const isBacks = (referenceMetal === 'Gold' || referenceMetal === 'Platinum') && absolutePrice > 0 && absolutePrice < 1;
+                                if (isBacks) return <>1 <a href="https://goldback.com" target="_blank" rel="noopener noreferrer" className="text-info text-decoration-none">{referenceMetal === 'Gold' ? 'Goldback' : 'Platinumback'}</a>:</>;
+                                return `1 Oz ${referenceMetal}:`;
+                            })()}
                         </span>
                         <span className="fw-mono text-light small">
                             {referenceMetal === 'Inflation Adjusted $'

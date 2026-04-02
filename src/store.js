@@ -11,6 +11,7 @@ const useStore = create(
             tickers: [],     // Ticker metadata
             isLogScale: false, // Logarithmic scale toggle
             referenceMetal: 'Gold', // Default reference metal
+            lastTimeVisited: null, // Timestamp tracker for onboarding
             metals: [
                 { name: 'Gold', symbol: 'Au', color: '#F59E0B' },
                 { name: 'Silver', symbol: 'Ag', color: '#9CA3AF' },
@@ -31,13 +32,14 @@ const useStore = create(
             setTickers: (tickers) => set({ tickers }),
             setIsLogScale: (isLog) => set({ isLogScale: isLog }),
             setReferenceMetal: (metal) => set({ referenceMetal: metal }),
+            setLastTimeVisited: (time) => set({ lastTimeVisited: time }),
 
             deviceType: 'Monitor', // 'Monitor', 'Phone Vertical', 'Phone Horizontal'
             setDeviceType: (type) => set({ deviceType: type }),
         }),
         {
             name: 'stock-storage', // unique name
-            partialize: (state) => ({ selectedTicker: state.selectedTicker, timeRange: state.timeRange, isLogScale: state.isLogScale, referenceMetal: state.referenceMetal }), // only persist these
+            partialize: (state) => ({ selectedTicker: state.selectedTicker, timeRange: state.timeRange, isLogScale: state.isLogScale, referenceMetal: state.referenceMetal, lastTimeVisited: state.lastTimeVisited }), // only persist these
         }
     )
 );

@@ -94,19 +94,23 @@ const Chart = () => {
         }
 
         if (maxVal < 0.001) {
-            return { scale: 1000000, unit: 'micro Oz', label: 'µoz' };
+            return { scale: 1000000, unit: 'micro Oz', label: 'µoz', legendSuffix: 'µoz', tickPrefix: '' };
         } else if (maxVal < 1) {
-            return { scale: 1000, unit: 'milli Oz', label: 'moz' };
+            if (referenceMetal === 'Gold') return { scale: 1000, unit: 'Goldbacks', label: 'Goldbacks', legendSuffix: 'Goldback (1000th of gold ounce)', tickPrefix: '' };
+            if (referenceMetal === 'Platinum') return { scale: 1000, unit: 'Platinumbacks', label: 'Platinumbacks', legendSuffix: 'Platinumback (1000th of platinum ounce)', tickPrefix: '' };
+            return { scale: 1000, unit: 'milli Oz', label: 'moz', legendSuffix: 'moz', tickPrefix: '' };
         } else {
-            return { scale: 1, unit: 'Ounces', label: 'oz' };
+            return { scale: 1, unit: 'Ounces', label: 'oz', legendSuffix: 'oz', tickPrefix: '' };
         }
-    }, [chartData]);
+    }, [chartData, referenceMetal]);
 
     const formatMetalAxisTick = (value) => {
         if (viewMode !== 'units') return `${value.toFixed(0)}%`;
         if (value === 0) return "0";
         if (referenceMetal === 'Inflation Adjusted $') return `$${value.toFixed(0)}`;
-        return (value * metalAxisConfig.scale).toPrecision(4);
+        
+        const tickValue = (value * metalAxisConfig.scale).toPrecision(4);
+        return metalAxisConfig.tickPrefix ? `${metalAxisConfig.tickPrefix}${tickValue}` : tickValue;
     };
 
     const formatMetalTooltip = (value) => {
@@ -122,6 +126,8 @@ const Chart = () => {
         if (absValue >= 1) {
             return `${value.toPrecision(4)} oz`;
         } else if (absValue >= 0.001) {
+            if (referenceMetal === 'Gold') return `${(value * 1000).toPrecision(4)} GB`;
+            if (referenceMetal === 'Platinum') return `${(value * 1000).toPrecision(4)} PB`;
             return `${(value * 1000).toPrecision(4)} m oz`;
         } else {
             return `${(value * 1000000).toPrecision(4)} µ oz`;
@@ -167,20 +173,31 @@ const Chart = () => {
         }
         return (
             <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={chartData} margin={{ left: 10, right: 30 }}>
+                <ComposedChart data={chartData} margin={{ left: 25, right: 30 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                     <XAxis timeRange={timeRange} />
                     <YAxis
-                        referenceMetal={referenceMetal}
-                        metalColors={metalColors}
-                        metalAxisConfig={metalAxisConfig}
-                        isLogScale={isLogScale}
-                        formatMetalAxisTick={formatMetalAxisTick}
-                        formatUSD={formatUSD}
-                        activeAxis={activeAxis}
-                        isMobile={isMobile}
-                        metalNeedsPadding={metalNeedsPadding}
-                        usdNeedsPadding={usdNeedsPadding}
+                        yAxisId="left"
+                        orientation="left"
+                        hide={isMobile && activeAxis !== 'metal'}
+                        stroke={metalColors[referenceMetal]}
+                        width={isMobile ? 50 : 80}
+                        label={isMobile ? null : {
+                            value: referenceMetal === 'Inflation Adjusted $' ? 'Price (Adjusted $)' : `Price (${metalAxisConfig.label})`,
+                            angle: -90,
+                            position: 'insideLeft',
+                            fill: metalColors[referenceMetal],
+                            style: { textAnchor: 'middle' },
+                            dx: -15
+                        }}
+                        tickFormatter={formatMetalAxisTick}
+                        scale={isLogScale ? 'log' : 'linear'}
+                        domain={([min, max]) => {
+                            if (isLogScale || !metalNeedsPadding) return [min, max];
+                            const range = max - min;
+                            const buffer = range * 0.15;
+                            return [min, max + buffer];
+                        }}
                     />
                     {referenceMetal !== 'Inflation Adjusted $' && (
                         <YAxis
@@ -229,7 +246,7 @@ const Chart = () => {
                         type="monotone"
                         dataKey="priceMetal"
                         stroke={metalColors[referenceMetal]}
-                        name={referenceMetal === 'Inflation Adjusted $' ? 'Adjusted Price ($)' : `Price in ${referenceMetal} (${metalAxisConfig.label})`}
+                        name={referenceMetal === 'Inflation Adjusted $' ? 'Adjusted Price ($)' : `Price in ${referenceMetal} (${metalAxisConfig.legendSuffix})`}
                         dot={false}
                         strokeWidth={2}
                     />
