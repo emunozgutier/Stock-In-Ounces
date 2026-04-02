@@ -96,7 +96,7 @@ const Chart = () => {
         if (maxVal < 0.001) {
             return { scale: 1000000, unit: 'micro Oz', label: 'µoz', legendSuffix: 'µoz', tickPrefix: '' };
         } else if (maxVal < 1) {
-            if (referenceMetal === 'Gold') return { scale: 1000, unit: 'Goldbacks', label: 'Goldbacks', legendSuffix: 'Goldback (1000th of gold ounce)', tickPrefix: '' };
+            if (referenceMetal === 'Gold') return { scale: 1000, unit: 'Goldbacks', label: 'Goldbacks', legendSuffix: 'Goldback (1000th of gold ounce)', tickPrefix: '₲ ' };
             if (referenceMetal === 'Platinum') return { scale: 1000, unit: 'Platinumbacks', label: 'Platinumbacks', legendSuffix: 'Platinumback (1000th of platinum ounce)', tickPrefix: '' };
             return { scale: 1000, unit: 'milli Oz', label: 'moz', legendSuffix: 'moz', tickPrefix: '' };
         } else {

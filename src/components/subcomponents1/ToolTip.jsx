@@ -43,13 +43,7 @@ const ToolTip = ({ active, payload, label, referenceMetal, metalColors, formatMe
                 {priceUSD > 0 && priceMetal > 0 && (
                     <div className="d-flex justify-content-between mt-2 pt-2 border-top border-secondary">
                         <span className="text-warning small fst-italic">
-                            {(() => {
-                                if (referenceMetal === 'Inflation Adjusted $') return 'Inflation Multiplier:';
-                                const absolutePrice = Math.abs(priceMetal);
-                                const isBacks = (referenceMetal === 'Gold' || referenceMetal === 'Platinum') && absolutePrice > 0 && absolutePrice < 1;
-                                if (isBacks) return <>1 <a href="https://goldback.com" target="_blank" rel="noopener noreferrer" className="text-info text-decoration-none">{referenceMetal === 'Gold' ? 'Goldback' : 'Platinumback'}</a>:</>;
-                                return `1 Oz ${referenceMetal}:`;
-                            })()}
+                            {referenceMetal === 'Inflation Adjusted $' ? 'Inflation Multiplier:' : `1 Oz ${referenceMetal}:`}
                         </span>
                         <span className="fw-mono text-light small">
                             {referenceMetal === 'Inflation Adjusted $'

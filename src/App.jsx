@@ -159,6 +159,19 @@ function App() {
               }
             </p>
           </div>
+          <div className="d-flex justify-content-center align-items-center">
+            <a
+              href="https://goldback.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-outline-warning btn-sm small fw-semibold"
+              title="Learn about Goldbacks directly from the source"
+              style={{ padding: '0.25rem 0.75rem', fontSize: '0.875em', boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }}
+            >
+              What is a GoldBack?
+            </a>
+          </div>
+
           <div className="d-flex align-items-center gap-3">
             {lastUpdate && (
               <span className="small text-secondary" style={{ fontSize: '0.75rem' }}>
