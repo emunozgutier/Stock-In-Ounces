@@ -6,10 +6,10 @@ const useStore = create(
         (set) => ({
             selectedTicker: 'SPY', // Default ticker updated to SPY
             searchTerm: '',
-            timeRange: '1Y', // Default time range
+            timeRange: 'Max', // Default time range
             data: [],        // Full CSV data
             tickers: [],     // Ticker metadata
-            isLogScale: false, // Logarithmic scale toggle
+            isLogScale: true, // Logarithmic scale toggle default true
             referenceMetal: 'Gold', // Default reference metal
             lastTimeVisited: null, // Timestamp tracker for onboarding
             metals: [
@@ -45,7 +45,7 @@ const useStore = create(
             setDeviceType: (type) => set({ deviceType: type }),
         }),
         {
-            name: 'stock-storage', // unique name
+            name: 'stock-storage-v2', // unique name bumped version to reset user state to defaults
             partialize: (state) => ({ selectedTicker: state.selectedTicker, timeRange: state.timeRange, isLogScale: state.isLogScale, referenceMetal: state.referenceMetal, lastTimeVisited: state.lastTimeVisited }), // only persist these
         }
     )

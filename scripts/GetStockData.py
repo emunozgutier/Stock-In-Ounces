@@ -308,13 +308,13 @@ def main():
     print(f"\nSuccessfully saved full stock data to {output_path}")
 
     # 2. Save Fast Data (FastData.json)
-    # Goal: Gold + SPY (Default Stock) + Inflation Adjusted $ + 1Y (Default Timeframe)
+    # Goal: Gold + SPY (Default Stock) + Inflation Adjusted $ + Max (Default Timeframe)
     # Columnar format for consistency
     
     fast_data = {}
     
-    if "1y" in final_data:
-        src = final_data["1y"]
+    if "Max" in final_data:
+        src = final_data["Max"]
         src_cols = src["columns"]
         src_rows = src["rows"]
         
@@ -341,7 +341,7 @@ def main():
                     row_data.append(row[inflation_idx])
                 fast_rows.append(row_data)
                 
-            fast_data["1y"] = {
+            fast_data["Max"] = {
                 "columns": fast_cols,
                 "rows": fast_rows
             }
