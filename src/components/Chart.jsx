@@ -43,6 +43,17 @@ const Chart = () => {
 
         if (timeFrameData.length === 0) return [];
 
+        // Capture base inflation multiplier to base the chart at the left-most value
+        let baseMultiplier = null;
+        if (referenceMetal === 'Inflation Adjusted $') {
+            for (let item of timeFrameData) {
+                if (item[referenceMetal] != null && item[referenceMetal] !== 0) {
+                    baseMultiplier = item[referenceMetal];
+                    break;
+                }
+            }
+        }
+
         // Prepare data for chart
         let processedData = timeFrameData.map((item) => {
             const date = new Date(item.Date);
@@ -55,8 +66,12 @@ const Chart = () => {
             let priceMetal = null;
             if (priceUSD != null && priceReference != null && priceReference !== 0) {
                 if (referenceMetal === 'Inflation Adjusted $') {
-                    // priceReference is the multiplier (Latest CPI / Historical CPI)
-                    priceMetal = priceUSD * priceReference;
+                    // Re-base the CPI multiplier so the leftmost point matches nominal exactly
+                    if (baseMultiplier) {
+                        priceMetal = (priceUSD / baseMultiplier) * priceReference;
+                    } else {
+                        priceMetal = priceUSD * priceReference;
+                    }
                 } else {
                     priceMetal = priceUSD / priceReference;
                 }
@@ -108,7 +123,7 @@ const Chart = () => {
         if (viewMode !== 'units') return `${value.toFixed(0)}%`;
         if (value === 0) return "0";
         if (referenceMetal === 'Inflation Adjusted $') return `$${value.toFixed(0)}`;
-        
+
         const tickValue = (value * metalAxisConfig.scale).toPrecision(4);
         return metalAxisConfig.tickPrefix ? `${metalAxisConfig.tickPrefix}${tickValue}` : tickValue;
     };

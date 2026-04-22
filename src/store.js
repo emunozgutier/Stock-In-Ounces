@@ -31,7 +31,14 @@ const useStore = create(
             setData: (data) => set({ data }),
             setTickers: (tickers) => set({ tickers }),
             setIsLogScale: (isLog) => set({ isLogScale: isLog }),
-            setReferenceMetal: (metal) => set({ referenceMetal: metal }),
+            setReferenceMetal: (metal) => set((state) => {
+                const isRestrictedMetal = metal === 'Platinum' || metal === 'Silver';
+                const restrictedRanges = ['20Y', '30Y', 'Max'];
+                if (isRestrictedMetal && restrictedRanges.includes(state.timeRange)) {
+                    return { referenceMetal: metal, timeRange: '10Y' };
+                }
+                return { referenceMetal: metal };
+            }),
             setLastTimeVisited: (time) => set({ lastTimeVisited: time }),
 
             deviceType: 'Monitor', // 'Monitor', 'Phone Vertical', 'Phone Horizontal'
