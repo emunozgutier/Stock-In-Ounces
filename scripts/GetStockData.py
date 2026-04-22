@@ -86,12 +86,38 @@ def get_cpi_multipliers():
         print(f"Error fetching CPI data: {e}")
         return {}
 
+def get_historical_gold():
+    """
+    Fetch monthly historical gold prices from a public github dataset to use as fallback
+    for dates before Yahoo Finance data (2000). Returns a map of {YYYY-MM: price}.
+    """
+    url = "https://raw.githubusercontent.com/datasets/gold-prices/main/data/monthly.csv"
+    print(f"Fetching historical gold data from {url}...")
+    try:
+        with request.urlopen(url) as response:
+            csv_data = response.read().decode('utf-8')
+            df = pd.read_csv(io.StringIO(csv_data))
+            
+        df = df.dropna()
+        gold_map = {}
+        for idx, row in df.iterrows():
+            gold_map[row['Date']] = float(row['Price'])
+            
+        print(f"Loaded {len(gold_map)} historical gold prices.")
+        return gold_map
+    except Exception as e:
+        print(f"Error fetching historical gold data: {e}")
+        return {}
+
 def main():
     print("Generating TimeFrame dates...")
     timeframe_dates = get_timeframe_dates()
     
     # Fetch inflation data
     cpi_multipliers = get_cpi_multipliers()
+    
+    # Fetch historical gold backfill
+    historical_gold = get_historical_gold()
     
     final_data = {}
     
@@ -258,6 +284,13 @@ def main():
                              pass # Single ticker logic omitted
 
                         if found: break
+                        
+                    # If not found from Yahoo, and ticker is Gold, check fallback data
+                    if not found and key == "Gold":
+                        month_key = date_str[:7]
+                        hist_val = historical_gold.get(month_key)
+                        if hist_val is not None:
+                            val = hist_val
                 
                 row_values.append(val)
 
