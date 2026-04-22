@@ -26,10 +26,11 @@ ASSETS = {
     "Indices": {
         # S&P 500 now individual tickers
     },
-    # Vanguard ETF
-    "VanguardETF": {
+    # ETFs
+    "ETFs": {
         "VTI": "VTI",
-        "VOO": "VOO"
+        "VOO": "VOO",
+        "SPY": "SPY"
     },
     # Crypto (Top 10 by Market Cap - Simplified list)
     "Crypto": {
@@ -123,8 +124,8 @@ def main():
         tickers_map[name] = symbol
         all_symbols.append(symbol)
         
-    # Add Vanguard
-    for name, symbol in ASSETS["VanguardETF"].items():
+    # Add ETFs
+    for name, symbol in ASSETS["ETFs"].items():
         tickers_map[name] = symbol
         all_symbols.append(symbol)
 
@@ -274,7 +275,7 @@ def main():
     print(f"\nSuccessfully saved full stock data to {output_path}")
 
     # 2. Save Fast Data (FastData.json)
-    # Goal: Gold + VOO (Default Stock) + Inflation Adjusted $ + 1Y (Default Timeframe)
+    # Goal: Gold + SPY (Default Stock) + Inflation Adjusted $ + 1Y (Default Timeframe)
     # Columnar format for consistency
     
     fast_data = {}
@@ -288,10 +289,10 @@ def main():
         try:
             date_idx = src_cols.index("Date")
             gold_idx = src_cols.index("Gold")
-            voo_idx = src_cols.index("VOO")
+            spy_idx = src_cols.index("SPY")
             inflation_idx = src_cols.index("Inflation Adjusted $") if "Inflation Adjusted $" in src_cols else -1
             
-            fast_cols = ["Date", "Gold", "VOO"]
+            fast_cols = ["Date", "Gold", "SPY"]
             if inflation_idx != -1:
                 fast_cols.append("Inflation Adjusted $")
 
@@ -301,7 +302,7 @@ def main():
                 row_data = [
                     row[date_idx],
                     row[gold_idx],
-                    row[voo_idx]
+                    row[spy_idx]
                 ]
                 if inflation_idx != -1:
                     row_data.append(row[inflation_idx])
@@ -312,7 +313,7 @@ def main():
                 "rows": fast_rows
             }
         except ValueError:
-            print("Warning: Could not find Gold or VOO in columns for FastData.")
+            print("Warning: Could not find Gold or SPY in columns for FastData.")
             
     fast_output_path = os.path.join(public_dir, "FastData.json")
     with open(fast_output_path, "w") as f:

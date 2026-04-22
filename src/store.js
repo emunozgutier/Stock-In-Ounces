@@ -4,7 +4,7 @@ import { persist } from 'zustand/middleware';
 const useStore = create(
     persist(
         (set) => ({
-            selectedTicker: 'VOO', // Default ticker updated to VOO
+            selectedTicker: 'SPY', // Default ticker updated to SPY
             searchTerm: '',
             timeRange: '1Y', // Default time range
             data: [],        // Full CSV data
