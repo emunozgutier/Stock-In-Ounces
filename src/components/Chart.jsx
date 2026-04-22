@@ -165,6 +165,24 @@ const Chart = () => {
     }, [chartData]);
 
 
+    const inflationSyncDomain = useMemo(() => {
+        if (referenceMetal !== 'Inflation Adjusted $' || chartData.length === 0) return null;
+        let pmin = Infinity;
+        let pmax = -Infinity;
+        for (let d of chartData) {
+            if (d.priceMetal != null) {
+                if (d.priceMetal < pmin) pmin = d.priceMetal;
+                if (d.priceMetal > pmax) pmax = d.priceMetal;
+            }
+            if (d.PriceUSD != null) {
+                if (d.PriceUSD < pmin) pmin = d.PriceUSD;
+                if (d.PriceUSD > pmax) pmax = d.PriceUSD;
+            }
+        }
+        if (pmin === Infinity) return null;
+        return [pmin, pmax];
+    }, [chartData, referenceMetal]);
+
     const renderContent = () => {
         if (!selectedTicker) {
             return <div className="d-flex justify-content-center align-items-center h-100 text-secondary">Select a stock to view its price in {referenceMetal}.</div>;
@@ -198,37 +216,51 @@ const Chart = () => {
                         tickFormatter={formatMetalAxisTick}
                         scale={isLogScale ? 'log' : 'linear'}
                         domain={([min, max]) => {
+                            if (referenceMetal === 'Inflation Adjusted $' && inflationSyncDomain) {
+                                const mergedMin = inflationSyncDomain[0];
+                                const mergedMax = inflationSyncDomain[1];
+                                if (isLogScale) return [mergedMin, mergedMax];
+                                const range = mergedMax - mergedMin;
+                                const buffer = range * 0.15;
+                                return [mergedMin, mergedMax + buffer];
+                            }
                             if (isLogScale || !metalNeedsPadding) return [min, max];
                             const range = max - min;
                             const buffer = range * 0.15;
                             return [min, max + buffer];
                         }}
                     />
-                    {referenceMetal !== 'Inflation Adjusted $' && (
-                        <YAxis
-                            yAxisId="right"
-                            orientation={isMobile ? 'left' : 'right'}
-                            hide={isMobile && activeAxis !== 'usd'}
-                            stroke="#10B981"
-                            width={isMobile ? 50 : 80}
-                            label={isMobile ? null : {
-                                value: 'Price (USD)',
-                                angle: 90,
-                                position: 'insideRight',
-                                fill: '#10B981',
-                                style: { textAnchor: 'middle' },
-                                dx: 15
-                            }}
-                            tickFormatter={formatUSD}
-                            scale={isLogScale ? 'log' : 'linear'}
-                            domain={([min, max]) => {
-                                if (isLogScale || !usdNeedsPadding) return [min, max];
-                                const range = max - min;
+                    <YAxis
+                        yAxisId="right"
+                        orientation={isMobile ? 'left' : 'right'}
+                        hide={isMobile && activeAxis !== 'usd'}
+                        stroke="#10B981"
+                        width={isMobile ? 50 : 80}
+                        label={isMobile ? null : {
+                            value: 'Price (Nominal USD)',
+                            angle: 90,
+                            position: 'insideRight',
+                            fill: '#10B981',
+                            style: { textAnchor: 'middle' },
+                            dx: 15
+                        }}
+                        tickFormatter={formatUSD}
+                        scale={isLogScale ? 'log' : 'linear'}
+                        domain={([min, max]) => {
+                            if (referenceMetal === 'Inflation Adjusted $' && inflationSyncDomain) {
+                                const mergedMin = inflationSyncDomain[0];
+                                const mergedMax = inflationSyncDomain[1];
+                                if (isLogScale) return [mergedMin, mergedMax];
+                                const range = mergedMax - mergedMin;
                                 const buffer = range * 0.15;
-                                return [min, max + buffer];
-                            }}
-                        />
-                    )}
+                                return [mergedMin, mergedMax + buffer];
+                            }
+                            if (isLogScale || !usdNeedsPadding) return [min, max];
+                            const range = max - min;
+                            const buffer = range * 0.15;
+                            return [min, max + buffer];
+                        }}
+                    />
                     {deviceType !== 'Phone Horizontal' && (
                         <Tooltip
                             position={{ x: isMobile ? 65 : 100, y: 0 }}
@@ -258,7 +290,7 @@ const Chart = () => {
 
                     {/* USD Price Line */}
                     <Line
-                        yAxisId={referenceMetal === 'Inflation Adjusted $' ? "left" : "right"}
+                        yAxisId="right"
                         type="monotone"
                         dataKey="PriceUSD"
                         stroke="#10B981"
