@@ -47,7 +47,7 @@ const Chart = () => {
         let baseMultiplier = null;
         if (referenceMetal === 'Inflation Adjusted $') {
             for (let item of timeFrameData) {
-                if (item[referenceMetal] != null && item[referenceMetal] !== 0) {
+                if (item[referenceMetal] != null && item[referenceMetal] !== 0 && item[selectedTicker] != null) {
                     baseMultiplier = item[referenceMetal];
                     break;
                 }
