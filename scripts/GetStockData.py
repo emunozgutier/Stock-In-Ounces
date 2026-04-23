@@ -30,7 +30,8 @@ ASSETS = {
     "ETFs": {
         "VTI": "VTI",
         "VOO": "VOO",
-        "SPY": "SPY"
+        "SPY": "SPY",
+        "VIG": "VIG"
     },
     # Crypto (Top 10 by Market Cap - Simplified list)
     "Crypto": {
@@ -152,6 +153,11 @@ def main():
         
     # Add ETFs
     for name, symbol in ASSETS["ETFs"].items():
+        tickers_map[name] = symbol
+        all_symbols.append(symbol)
+
+    # Add Indices
+    for name, symbol in ASSETS["Indices"].items():
         tickers_map[name] = symbol
         all_symbols.append(symbol)
 
@@ -361,7 +367,7 @@ def main():
     for ticker in sorted_tickers:
         tickers_list.append({
             "symbol": ticker,
-            "name": ticker 
+            "name": tickers_map[ticker] 
         })
         
     tickers_output_path = os.path.join(public_dir, "tickers.json")
