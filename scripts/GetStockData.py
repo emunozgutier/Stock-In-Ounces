@@ -24,7 +24,7 @@ ASSETS = {
     },
     # Indices/ETFs
     "Indices": {
-        # S&P 500 now individual tickers
+        "S&P 500 Index": "^GSPC"
     },
     # ETFs
     "ETFs": {
