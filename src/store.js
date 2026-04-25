@@ -1,10 +1,8 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 
 const useStore = create(
-    persist(
-        (set) => ({
-            selectedTicker: 'SPY', // Default ticker updated to SPY
+    (set) => ({
+        selectedTicker: 'SPY', // Default ticker updated to SPY
             searchTerm: '',
             timeRange: 'Max', // Default time range
             data: [],        // Full CSV data
@@ -42,13 +40,8 @@ const useStore = create(
             setLastTimeVisited: (time) => set({ lastTimeVisited: time }),
 
             deviceType: 'Monitor', // 'Monitor', 'Phone Vertical', 'Phone Horizontal'
-            setDeviceType: (type) => set({ deviceType: type }),
-        }),
-        {
-            name: 'stock-storage-v2', // unique name bumped version to reset user state to defaults
-            partialize: (state) => ({ selectedTicker: state.selectedTicker, timeRange: state.timeRange, isLogScale: state.isLogScale, referenceMetal: state.referenceMetal, lastTimeVisited: state.lastTimeVisited }), // only persist these
-        }
-    )
+        setDeviceType: (type) => set({ deviceType: type }),
+    })
 );
 
 export default useStore;
