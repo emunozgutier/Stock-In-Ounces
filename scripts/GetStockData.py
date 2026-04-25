@@ -155,6 +155,11 @@ def main():
         tickers_map[name] = symbol
         all_symbols.append(symbol)
 
+    # Add Indices
+    for name, symbol in ASSETS["Indices"].items():
+        tickers_map[name] = symbol
+        all_symbols.append(symbol)
+
     # Add S&P 500 Tickers
     for symbol in SP500_TICKERS:
         tickers_map[symbol] = symbol
@@ -358,10 +363,10 @@ def main():
     
     # Sorted list of all tickers
     sorted_tickers = sorted(list(tickers_map.keys()))
-    for ticker in sorted_tickers:
+    for ticker_name in sorted_tickers:
         tickers_list.append({
-            "symbol": ticker,
-            "name": ticker 
+            "symbol": tickers_map[ticker_name],
+            "name": ticker_name 
         })
         
     tickers_output_path = os.path.join(public_dir, "tickers.json")
