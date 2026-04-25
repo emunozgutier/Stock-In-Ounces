@@ -17,8 +17,8 @@ const SearchStock = () => {
         ).slice(0, 10); // Limit to 10 results
     }, [tickers, query]);
 
-    const handleSelect = (symbol) => {
-        setSelectedTicker(symbol);
+    const handleSelect = (name) => {
+        setSelectedTicker(name);
         setQuery('');
         setIsOpen(false);
     };
@@ -48,9 +48,9 @@ const SearchStock = () => {
                 <ul className="list-group position-absolute w-100 mt-1 shadow-lg start-0 overflow-auto border border-secondary" style={{ maxHeight: '240px', zIndex: 1000 }}>
                     {filteredTickers.map((ticker) => (
                         <li
-                            key={ticker.symbol}
+                            key={ticker.name}
                             className="list-group-item list-group-item-action bg-dark text-light border-secondary d-flex justify-content-between align-items-center cursor-pointer"
-                            onClick={() => handleSelect(ticker.symbol)}
+                            onClick={() => handleSelect(ticker.name)}
                             style={{ cursor: 'pointer' }}
                         >
                             <span className="fw-bold text-warning text-truncate me-2">{ticker.symbol}</span>
