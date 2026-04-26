@@ -3,12 +3,10 @@ import React, { useEffect, useState } from 'react';
 import { Github } from 'lucide-react';
 import useStore from './store';
 import Chart from './components/Chart';
-import WelcomeModal from './components/WelcomeModal';
 
 function App() {
   const { data, setData, setTickers, referenceMetal, setDeviceType, lastTimeVisited, setLastTimeVisited } = useStore();
   const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
 
   // Compute last update date from data
   const lastUpdate = React.useMemo(() => {
@@ -25,20 +23,6 @@ function App() {
     return null;
   }, [data]);
 
-  // Modal 1-hour logic
-  useEffect(() => {
-    const now = Date.now();
-    const oneHour = 60 * 60 * 1000;
-    
-    if (!lastTimeVisited || (now - lastTimeVisited) > oneHour) {
-      setShowModal(true);
-    }
-  }, [lastTimeVisited]);
-
-  const handleDismissModal = () => {
-    setShowModal(false);
-    setLastTimeVisited(Date.now());
-  };
 
   // Device Detection Logic
   useEffect(() => {
@@ -206,8 +190,6 @@ function App() {
           )}
         </main>
       </div>
-      
-      <WelcomeModal show={showModal} onDismiss={handleDismissModal} />
       
     </div>
   );
