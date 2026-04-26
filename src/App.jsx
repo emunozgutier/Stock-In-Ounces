@@ -5,7 +5,7 @@ import useStore from './store';
 import Chart from './components/Chart';
 
 function App() {
-  const { data, setData, setTickers, referenceMetal, setDeviceType, lastTimeVisited, setLastTimeVisited } = useStore();
+  const { data, setData, setTickers, referenceMetal, setDeviceType } = useStore();
   const [loading, setLoading] = useState(true);
 
   // Compute last update date from data

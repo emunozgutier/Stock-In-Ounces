@@ -9,11 +9,7 @@ const ToolTip = ({ active, payload, label, referenceMetal, metalColors, formatMe
         const priceMetal = metalItem ? metalItem.value : 0;
         const priceUSD = usdItem ? usdItem.value : 0;
 
-        // Calculate Metal Price (USD per Oz)
-        let metalPriceUSD = 0;
-        if (priceMetal > 0) {
-            metalPriceUSD = priceUSD / priceMetal;
-        }
+
 
         return (
             <div className="custom-tooltip bg-dark p-2 border border-secondary rounded shadow-sm" style={{ backgroundColor: '#212529', minWidth: '200px' }}>
