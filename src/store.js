@@ -2,7 +2,7 @@ import { create } from 'zustand';
 
 const useStore = create(
     (set) => ({
-        selectedTicker: 'SPY', // Default ticker updated to SPY
+        selectedTicker: '^GSPC', // Default ticker updated to ^GSPC
             searchTerm: '',
             timeRange: 'Max', // Default time range
             data: [],        // Full CSV data
