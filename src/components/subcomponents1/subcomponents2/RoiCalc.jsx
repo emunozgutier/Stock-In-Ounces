@@ -73,7 +73,7 @@ const RoiCalc = () => {
 
     if (!allStats) return null;
 
-    const renderStats = (stats, label, colorClass) => {
+    const renderStats = (stats, label) => {
         if (!stats) return null;
         return (
             <div className="d-flex flex-column align-items-end mx-2">
@@ -90,8 +90,8 @@ const RoiCalc = () => {
 
     return (
         <div className="d-flex border-start border-secondary ps-2 ms-2">
-            {renderStats(allStats.metal, `${referenceMetal}`, 'text-light')}
-            {renderStats(allStats.usd, 'USD', 'text-success')}
+            {renderStats(allStats.metal, `${referenceMetal}`)}
+            {renderStats(allStats.usd, 'USD')}
         </div>
     );
 };

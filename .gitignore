@@ -26,3 +26,9 @@ dist-ssr
 # Docker Keys
 docker/keys/
 id_rsa*
+
+# Playwright Outputs
+tests/playwright-report/
+tests/test-results/
+playwright-report/
+test-results/
