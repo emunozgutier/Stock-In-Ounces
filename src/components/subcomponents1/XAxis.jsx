@@ -7,7 +7,11 @@ const XAxis = ({ timeRange }) => {
             dataKey="Date"
             stroke="#9CA3AF"
             tickFormatter={(str) => {
-                const date = new Date(str);
+                if (!str || typeof str !== 'string') return '';
+                const parts = str.split('-');
+                if (parts.length !== 3) return str;
+                const [year, month, day] = parts.map(Number);
+                const date = new Date(year, month - 1, day);
                 if (timeRange === '1Y') {
                     return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
                 }

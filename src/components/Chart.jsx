@@ -56,9 +56,6 @@ const Chart = () => {
 
         // Prepare data for chart
         let processedData = timeFrameData.map((item) => {
-            const date = new Date(item.Date);
-            const formattedDate = `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
-
             let priceUSD = item[selectedTicker];
             let priceReference = item[referenceMetal];
 
@@ -84,7 +81,7 @@ const Chart = () => {
             }
 
             return {
-                Date: formattedDate,
+                Date: item.Date,
                 priceMetal: priceMetal,
                 PriceUSD: priceUSD,
             };
