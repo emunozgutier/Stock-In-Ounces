@@ -5,12 +5,13 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile
+    image: stock-collector:v2.0
     container_name: stock-data-collector
     restart: "no"
     volumes:
-      # Mount the current folder to /app inside the container
+      # Mount the current folder (project root) to /app inside the container
       - .:/app
-      # Optional: Mount your private SSH key if you want to push updates to GitHub
+      # Mount the keys folder
       - ./docker/keys:/keys:ro
     environment:
       - GIT_EMAIL=docker@stock-in-ounces.local

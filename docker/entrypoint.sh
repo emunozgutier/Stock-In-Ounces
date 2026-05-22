@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-echo "Starting Stock Data Collector Container..."
+echo "Starting Stock Data Collector Container (Version 2.0)..."
 
 # Setup SSH key if provided in the mapped volume
 if [ -f "/keys/id_rsa" ]; then
@@ -23,8 +23,6 @@ fi
 git config --global user.email "${GIT_EMAIL:-docker@stock-in-ounces.local}"
 git config --global user.name "${GIT_NAME:-Stock Updater Bot}"
 
-# Configure git to consider the directory safe
-git config --global --add safe.directory /app
 
 echo "[$(date)] Running data collection scripts..."
 python collect_data.py
