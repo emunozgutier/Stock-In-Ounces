@@ -9,12 +9,18 @@ const ToolTip = ({ active, payload, label, referenceMetal, metalColors, formatMe
         const priceMetal = metalItem ? metalItem.value : 0;
         const priceUSD = usdItem ? usdItem.value : 0;
 
-
+        const parseDate = (str) => {
+            if (!str || typeof str !== 'string') return new Date();
+            const parts = str.split('-');
+            if (parts.length !== 3) return new Date(str);
+            const [year, month, day] = parts.map(Number);
+            return new Date(year, month - 1, day);
+        };
 
         return (
             <div className="custom-tooltip bg-dark p-2 border border-secondary rounded shadow-sm" style={{ backgroundColor: '#212529', minWidth: '200px' }}>
                 <p className="label text-light mb-2 fw-bold border-bottom border-secondary pb-1">
-                    {new Date(label).toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
+                    {parseDate(label).toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
                 </p>
                 <div className="d-flex justify-content-between mb-1">
                     <span style={{ color: metalColors[referenceMetal] }}>
