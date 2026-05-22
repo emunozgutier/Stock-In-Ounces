@@ -18,14 +18,12 @@ const ToolTip = ({ active, payload, label, referenceMetal, metalColors, formatMe
         };
 
         const dateObj = parseDate(label);
-        const formattedDate = dateObj.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
-        const formattedYear = dateObj.getFullYear();
+        const formattedDate = dateObj.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
 
         return (
             <div className="custom-tooltip bg-dark p-2 border border-secondary rounded shadow-sm" style={{ backgroundColor: '#212529', minWidth: '220px' }}>
-                <p className="label text-light mb-2 fw-bold border-bottom border-secondary pb-1 d-flex justify-content-between align-items-center">
-                    <span>{formattedDate}</span>
-                    <span className="badge bg-warning text-dark px-2 py-1" style={{ fontSize: '0.85rem' }}>{formattedYear}</span>
+                <p className="label text-warning mb-2 fw-bold border-bottom border-secondary pb-1">
+                    {formattedDate}
                 </p>
                 <div className="d-flex justify-content-between mb-1">
                     <span style={{ color: metalColors[referenceMetal] }}>
