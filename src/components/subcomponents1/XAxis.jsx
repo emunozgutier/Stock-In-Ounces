@@ -13,7 +13,9 @@ const XAxis = ({ timeRange }) => {
                 const [year, month, day] = parts.map(Number);
                 const date = new Date(year, month - 1, day);
                 if (timeRange === '1Y') {
-                    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+                    const month = date.toLocaleDateString(undefined, { month: 'short' });
+                    const yearShort = date.getFullYear().toString().slice(-2);
+                    return `${month} '${yearShort}`;
                 }
                 return date.toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
             }}
