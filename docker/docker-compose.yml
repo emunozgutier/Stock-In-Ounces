@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  stock-collector:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: stock-data-collector
+    restart: "no"
+    volumes:
+      # Mount the current folder to /app inside the container
+      - .:/app
+      # Optional: Mount your private SSH key if you want to push updates to GitHub
+      - ./docker/keys:/keys:ro
+    environment:
+      - GIT_EMAIL=docker@stock-in-ounces.local
+      - GIT_NAME=Stock Updater Bot
+      # Timezone for scheduling (change to your specific timezone if different)
+      - TZ=America/Los_Angeles
+
