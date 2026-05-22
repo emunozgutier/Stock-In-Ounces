@@ -94,14 +94,16 @@ function App() {
       try {
         setLoading(true);
 
+        const GITHUB_RAW_BASE = 'https://raw.githubusercontent.com/emunozgutier/Stock-In-Ounces/main/public';
+
         // 1. Load Tickers Metadata
-        const tickersResponse = await fetch('./tickers.json');
+        const tickersResponse = await fetch(`${GITHUB_RAW_BASE}/tickers.json`);
         const tickersData = await tickersResponse.json();
         setTickers(tickersData);
 
         // 2. Load Fast Data (Instant Render)
         try {
-          const fastResponse = await fetch('./FastData.json');
+          const fastResponse = await fetch(`${GITHUB_RAW_BASE}/FastData.json`);
           if (fastResponse.ok) {
             const fastData = await fastResponse.json();
             setData(inflate(fastData));
@@ -112,7 +114,7 @@ function App() {
         }
 
         // 3. Load Full Data (Lazy)
-        const response = await fetch('./Data.json');
+        const response = await fetch(`${GITHUB_RAW_BASE}/Data.json`);
         const fullData = await response.json();
         setData(inflate(fullData));
         setLoading(false);
