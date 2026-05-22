@@ -26,11 +26,12 @@ git config --global user.name "${GIT_NAME:-Stock Updater Bot}"
 # Configure git to consider the directory safe
 git config --global --add safe.directory /app
 
-echo "[$(date)] Running data collection script..."
+echo "[$(date)] Running data collection scripts..."
 python collect_data.py
+python helperScripts/GetStockData.py
 
 echo "[$(date)] Checking for changes..."
-git add public/data.csv public/tickers.json
+git add public/data.csv public/tickers.json public/Data.json public/FastData.json
 
 if git diff --staged --quiet; then
     echo "[$(date)] No changes to commit."
