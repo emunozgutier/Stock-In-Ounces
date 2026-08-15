@@ -1,7 +1,9 @@
-import useStore from '../../store';
+import useAppState from '../../store/useState';
+import useStyle from '../../store/useStyle';
 
 const MetalSelector = () => {
-    const { referenceMetal, setReferenceMetal, metals } = useStore();
+    const { referenceMetal, setReferenceMetal } = useAppState();
+    const { metals } = useStyle();
 
     return (
         <div className="d-flex align-items-center gap-2">

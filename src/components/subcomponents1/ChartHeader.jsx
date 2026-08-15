@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import useStore from '../../store';
+import useAppState from '../../store/useState';
+import useWindow from '../../store/useWindow';
 import RoiCalc from './subcomponents2/RoiCalc';
 import ChartSettings from './subcomponents2/ChartSettings';
 import SearchStock from '../SearchStock';
@@ -7,7 +8,8 @@ import MetalSelector from './MetalSelector';
 import { Settings } from 'lucide-react';
 
 const ChartHeader = ({ isLogScale, setIsLogScale, viewMode, setViewMode, activeAxis, setActiveAxis, isMobile }) => {
-    const { selectedTicker, referenceMetal, deviceType } = useStore();
+    const { selectedTicker, referenceMetal } = useAppState();
+    const { deviceType } = useWindow();
     const [showSettings, setShowSettings] = useState(false);
 
     const isPhoneHorizontal = deviceType === 'Phone Horizontal';

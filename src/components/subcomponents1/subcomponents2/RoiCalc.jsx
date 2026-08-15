@@ -1,8 +1,10 @@
-import useStore from '../../../store';
+import useData from '../../../store/useData';
+import useAppState from '../../../store/useState';
 import { useMemo } from 'react';
 
 const RoiCalc = () => {
-    const { data, selectedTicker, timeRange, referenceMetal } = useStore();
+    const { data } = useData();
+    const { selectedTicker, timeRange, referenceMetal } = useAppState();
 
     // Helper to calculate growth between two values over a time period
     const computeGrowth = (startItem, endItem, valStart, valEnd) => {

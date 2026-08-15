@@ -7,7 +7,10 @@ import {
     ResponsiveContainer,
     ComposedChart
 } from 'recharts';
-import useStore from '../store';
+import useData from '../store/useData';
+import useAppState from '../store/useState';
+import useStyle from '../store/useStyle';
+import useWindow from '../store/useWindow';
 import { useMemo, useState, useEffect } from 'react';
 import ChartHeader from './subcomponents1/ChartHeader';
 
@@ -16,7 +19,10 @@ import XAxis from './subcomponents1/XAxis';
 import ToolTip from "./subcomponents1/ToolTip";
 
 const Chart = () => {
-    const { data, selectedTicker, timeRange, isLogScale, setIsLogScale, referenceMetal, metalColors, deviceType } = useStore();
+    const { data } = useData();
+    const { selectedTicker, timeRange, isLogScale, setIsLogScale, referenceMetal } = useAppState();
+    const { metalColors } = useStyle();
+    const { deviceType } = useWindow();
     const [viewMode, setViewMode] = useState('units'); // 'units', 'relative', 'absolute'
 
     // Mobile Detection

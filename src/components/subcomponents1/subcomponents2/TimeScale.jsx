@@ -1,7 +1,7 @@
-import useStore from '../../../store';
+import useAppState from '../../../store/useState';
 
 const TimeScale = () => {
-    const { timeRange, setTimeRange, referenceMetal } = useStore();
+    const { timeRange, setTimeRange, referenceMetal } = useAppState();
     const ranges = ['1Y', '5Y', '10Y', '20Y', '30Y', 'Max'];
     const isRestrictedMetal = referenceMetal === 'Platinum' || referenceMetal === 'Silver';
     const restrictedRanges = ['20Y', '30Y', 'Max'];

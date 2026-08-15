@@ -1,11 +1,15 @@
 import React, { useEffect, useState } from 'react';
 
 import { Github } from 'lucide-react';
-import useStore from './store';
+import useData from './store/useData';
+import useAppState from './store/useState';
+import useWindow from './store/useWindow';
 import Chart from './components/Chart';
 
 function App() {
-  const { data, setData, setTickers, referenceMetal, setDeviceType } = useStore();
+  const { data, setData, setTickers } = useData();
+  const { referenceMetal } = useAppState();
+  const { setDeviceType } = useWindow();
   const [loading, setLoading] = useState(true);
 
   // Compute last update date from data
