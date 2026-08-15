@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { devtools } from 'zustand/middleware';
 
 type DeviceType = 'Monitor' | 'Phone Vertical' | 'Phone Horizontal';
 
@@ -7,9 +8,14 @@ interface WindowState {
     setDeviceType: (type: DeviceType) => void;
 }
 
-const useWindow = create<WindowState>((set) => ({
-    deviceType: 'Monitor',
-    setDeviceType: (type) => set({ deviceType: type }),
-}));
+const useWindow = create<WindowState>()(
+    devtools(
+        (set) => ({
+            deviceType: 'Monitor',
+            setDeviceType: (type) => set({ deviceType: type }, false, 'setDeviceType'),
+        }),
+        { name: 'WindowStore' }
+    )
+);
 
 export default useWindow;
