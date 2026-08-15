@@ -1,16 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 
 import { Github } from 'lucide-react';
-import useData from './store/useData';
+import { DataProvider, useDataContext } from './store/DataContext';
 import useAppState from './store/useState';
 import useWindow from './store/useWindow';
 import Chart from './components/Chart';
+import { useEffect } from 'react';
 
-function App() {
-  const { data, setData, setTickers } = useData();
+function AppContent({ loading }) {
+  const { data } = useDataContext();
   const { referenceMetal } = useAppState();
   const { setDeviceType } = useWindow();
-  const [loading, setLoading] = useState(true);
 
   // Compute last update date from data
   const lastUpdate = React.useMemo(() => {
@@ -26,7 +26,6 @@ function App() {
     }
     return null;
   }, [data]);
-
 
   // Device Detection Logic
   useEffect(() => {
@@ -44,93 +43,12 @@ function App() {
       }
 
       setDeviceType(type);
-      // Optional: console.log for verification
-      // console.log(`Device: ${type} (${width}x${height})`);
     };
 
-    // Initial check
     handleResize();
-
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, [setDeviceType]);
-
-  useEffect(() => {
-    // Helper to inflate compact columnar data
-    const inflate = (data) => {
-      if (!data) return {};
-
-      // Handle legacy format (array) or simple object without columns
-      if (Array.isArray(data)) return data;
-
-      // Check if top-level has columns/rows (unlikely for multi-timeframe but possible for single)
-      if (data.columns && data.rows) {
-        const { columns, rows } = data;
-        return rows.map(row => {
-          const obj = {};
-          columns.forEach((col, index) => {
-            obj[col] = row[index];
-          });
-          return obj;
-        });
-      }
-
-      // Handle dictionary of timeframes {"1y": {columns, rows}, ...}
-      const inflated = {};
-      for (const [key, val] of Object.entries(data)) {
-        if (val && val.columns && val.rows) {
-          const { columns, rows } = val;
-          inflated[key] = rows.map(row => {
-            const obj = {};
-            columns.forEach((col, index) => {
-              obj[col] = row[index];
-            });
-            return obj;
-          });
-        } else {
-          inflated[key] = val;
-        }
-      }
-      return inflated;
-    };
-
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-
-        const GITHUB_RAW_BASE = 'https://raw.githubusercontent.com/emunozgutier/Stock-In-Ounces/main/public';
-
-        // 1. Load Tickers Metadata
-        const tickersResponse = await fetch(`${GITHUB_RAW_BASE}/tickers.json`);
-        const tickersData = await tickersResponse.json();
-        setTickers(tickersData);
-
-        // 2. Load Fast Data (Instant Render)
-        try {
-          const fastResponse = await fetch(`${GITHUB_RAW_BASE}/FastData.json`);
-          if (fastResponse.ok) {
-            const fastData = await fastResponse.json();
-            setData(inflate(fastData));
-            setLoading(false); // Enable interaction immediately
-          }
-        } catch (e) {
-          console.warn("FastData load failed, waiting for full data", e);
-        }
-
-        // 3. Load Full Data (Lazy)
-        const response = await fetch(`${GITHUB_RAW_BASE}/Data.json`);
-        const fullData = await response.json();
-        setData(inflate(fullData));
-        setLoading(false);
-
-      } catch (error) {
-        console.error("Error loading data:", error);
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [setData, setTickers]);
 
   return (
     <div className="bg-dark text-light h-100 d-flex flex-column">
@@ -196,8 +114,17 @@ function App() {
           )}
         </main>
       </div>
-      
     </div>
+  );
+}
+
+function App() {
+  const [loading, setLoading] = useState(true);
+
+  return (
+    <DataProvider onLoadingChange={setLoading}>
+      <AppContent loading={loading} />
+    </DataProvider>
   );
 }
 

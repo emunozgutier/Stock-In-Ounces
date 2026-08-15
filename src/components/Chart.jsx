@@ -7,7 +7,7 @@ import {
     ResponsiveContainer,
     ComposedChart
 } from 'recharts';
-import useData from '../store/useData';
+import { useDataContext } from '../store/DataContext';
 import useAppState from '../store/useState';
 import useStyle from '../store/useStyle';
 import useWindow from '../store/useWindow';
@@ -19,7 +19,7 @@ import XAxis from './subcomponents1/XAxis';
 import ToolTip from "./subcomponents1/ToolTip";
 
 const Chart = () => {
-    const { data } = useData();
+    const { data } = useDataContext();
     const { selectedTicker, timeRange, isLogScale, setIsLogScale, referenceMetal } = useAppState();
     const { metalColors } = useStyle();
     const { deviceType } = useWindow();
