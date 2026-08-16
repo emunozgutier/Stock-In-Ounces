@@ -2,6 +2,7 @@
 import useStyle from './useStyle';
 import useWindow from './useWindow';
 import useState from './useState';
+import useSelection from './useSelection';
 
 // Register stores with the Zustand browser extension
 // https://github.com/pmndrs/zustand#using-zustand-without-react
@@ -17,7 +18,8 @@ if (import.meta.env.DEV && typeof window !== 'undefined') {
         register(useStyle, 'StyleStore');
         register(useWindow, 'WindowStore');
         register(useState, 'AppState');
+        register(useSelection, 'SelectionStore');
     }
 }
 
-export { useStyle, useWindow, useState };
+export { useStyle, useWindow, useState, useSelection };
