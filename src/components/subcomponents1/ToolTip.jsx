@@ -1,10 +1,10 @@
 import React, { useEffect } from 'react';
 import useSelection from '../../store/useSelection';
-import useData from '../../store/useData';
+import useChart from '../../store/useChart';
 
 const ToolTip = ({ active, payload, label, referenceMetal, metalColors, formatMetalTooltip, formatUSD }) => {
     const { setHoverPoint } = useSelection();
-    const { goldUnit } = useData();
+    const { goldUnit } = useChart();
 
     useEffect(() => {
         if (active && payload && payload.length) {

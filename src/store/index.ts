@@ -3,6 +3,7 @@ import useStyle from './useStyle';
 import useWindow from './useWindow';
 import useState from './useState';
 import useSelection from './useSelection';
+import useChart from './useChart';
 import useData from './useData';
 
 // Register stores with the Zustand browser extension
@@ -20,8 +21,9 @@ if (import.meta.env.DEV && typeof window !== 'undefined') {
         register(useWindow, 'WindowStore');
         register(useState, 'AppState');
         //register(useSelection, 'SelectionStore');
+        register(useChart, 'ChartStore');
         register(useData, 'DataStore');
     }
 }
 
-export { useStyle, useWindow, useState, useSelection, useData };
+export { useStyle, useWindow, useState, useSelection, useChart, useData };

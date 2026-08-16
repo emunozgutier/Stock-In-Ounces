@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 
-// ── Inflate helper (verbatim from DataContext) ───────────────────────────────
+// ── Inflate helper ────────────────────────────────────────────────────────────
+// Expands the compact columnar wire format { columns, rows } into row objects.
 function inflate(data: unknown): unknown {
     if (!data) return {};
     if (Array.isArray(data)) return data;
@@ -46,9 +47,7 @@ interface DataState {
     data: Record<string, unknown> | unknown[];
     tickers: Ticker[];
     isLoading: boolean;
-    goldUnit: 'oz' | 'goldbacks';
     fetchData: () => Promise<void>;
-    setGoldUnit: (unit: 'oz' | 'goldbacks') => void;
 }
 
 // ── Store ────────────────────────────────────────────────────────────────────
@@ -60,9 +59,6 @@ const useData = create<DataState>()(
             data: [],
             tickers: [],
             isLoading: true,
-            goldUnit: 'oz',
-
-            setGoldUnit: (unit) => set({ goldUnit: unit }, false, 'setGoldUnit'),
 
             fetchData: async () => {
                 try {
@@ -73,7 +69,7 @@ const useData = create<DataState>()(
                     const tickersData: Ticker[] = await tickersRes.json();
                     set({ tickers: tickersData }, false, 'fetchData/tickers');
 
-                    // 2. Fast data — render immediately
+                    // 2. Fast data — render immediately while full data loads
                     try {
                         const fastRes = await fetch(`${GITHUB_RAW_BASE}/FastData.json`);
                         if (fastRes.ok) {

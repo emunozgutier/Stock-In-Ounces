@@ -8,6 +8,7 @@ import {
     ComposedChart
 } from 'recharts';
 import useData from '../store/useData';
+import useChart from '../store/useChart';
 import useAppState from '../store/useState';
 import useStyle from '../store/useStyle';
 import useWindow from '../store/useWindow';
@@ -20,7 +21,8 @@ import XAxis from './subcomponents1/XAxis';
 import ToolTip from "./subcomponents1/ToolTip";
 
 const Chart = () => {
-    const { data, goldUnit } = useData();
+    const { data } = useData();
+    const { goldUnit, setDisplayZeros } = useChart();
     const { selectedTicker, timeRange, isLogScale, setIsLogScale, referenceMetal, viewMode, setViewMode, activeAxis, setActiveAxis } = useAppState();
     const { metalColors } = useStyle();
     const { deviceType } = useWindow();
@@ -93,6 +95,40 @@ const Chart = () => {
         return processedData;
     }, [data, selectedTicker, timeRange, isLogScale, referenceMetal]);
 
+    // ── Zero-count heuristic ───────────────────────────────────────────────────
+    // For each data point's priceMetal value, count how many leading zeros the
+    // formatted number would have when shown as oz vs goldbacks (×1000).
+    // Summing across all points gives a score — fewer zeros = cleaner display.
+    const displayZeros = useMemo(() => {
+        const isGoldPlatinum = ['Gold', 'Platinum'].includes(referenceMetal);
+        if (!isGoldPlatinum || chartData.length === 0) {
+            return { goldbacksZeros: 0, ozZeros: 0 };
+        }
+
+        // Number of leading zeros after the decimal point before the first nonzero digit.
+        // e.g. 0.00423 → 2,  0.423 → 0,  4.23 → 0
+        const leadingZeros = (v) => {
+            if (!v || v <= 0 || v >= 1) return 0;
+            return Math.floor(-Math.log10(v));
+        };
+
+        let gbZeros = 0;
+        let oZeros = 0;
+        for (const d of chartData) {
+            const v = d.priceMetal;
+            if (v == null || v <= 0) continue;
+            gbZeros += leadingZeros(v * 1000); // value as goldbacks (×1000)
+            oZeros  += leadingZeros(v);         // value as oz (×1)
+        }
+        return { goldbacksZeros: gbZeros, ozZeros: oZeros };
+    }, [chartData, referenceMetal]);
+
+    // Sync computed zeros to the store so any external component can read them
+    useEffect(() => {
+        setDisplayZeros(displayZeros.goldbacksZeros, displayZeros.ozZeros);
+    }, [displayZeros, setDisplayZeros]);
+    // ──────────────────────────────────────────────────────────────────────────
+
     // Determine the scale for the Y-Axis based on the maximum value in the dataset
     const metalAxisConfig = useMemo(() => {
         if (chartData.length === 0) return { scale: 1, unit: 'Ounces', label: 'oz', legendSuffix: 'oz', tickPrefix: '' };
@@ -101,18 +137,21 @@ const Chart = () => {
             return { scale: 1, unit: 'Dollars', label: '$ (Adj)', legendSuffix: '$', tickPrefix: '' };
         }
 
-        const maxVal = Math.max(...chartData.map(d => Math.abs(d.priceMetal || 0)));
+        // Resolve effective unit:
+        //   'auto'      → whichever representation has fewer total leading zeros
+        //   'oz'        → always plain oz
+        //   'goldbacks' → always goldbacks
+        const effectiveGoldbacks =
+            goldUnit === 'goldbacks' ||
+            (goldUnit === 'auto' && displayZeros.goldbacksZeros <= displayZeros.ozZeros);
 
-        // Auto-switch to goldbacks when values are small (< 0.1 oz) OR when manually forced
-        const useGoldbacks = goldUnit === 'goldbacks' || maxVal < 0.1;
-        if (useGoldbacks) {
+        if (effectiveGoldbacks) {
             if (referenceMetal === 'Gold')     return { scale: 1000, unit: 'Goldbacks',     label: 'Goldbacks',     legendSuffix: 'Goldback (1/1000 oz)',     tickPrefix: '₲ ' };
             if (referenceMetal === 'Platinum') return { scale: 1000, unit: 'Platinumbacks', label: 'Platinumbacks', legendSuffix: 'Platinumback (1/1000 oz)', tickPrefix: '' };
         }
 
-        // Default: plain oz
         return { scale: 1, unit: 'Ounces', label: 'oz', legendSuffix: 'oz', tickPrefix: '' };
-    }, [chartData, referenceMetal, goldUnit]);
+    }, [chartData, referenceMetal, goldUnit, displayZeros]);
 
     const formatMetalAxisTick = (value) => {
         if (viewMode !== 'units') return `${value.toFixed(0)}%`;
