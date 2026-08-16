@@ -46,7 +46,9 @@ interface DataState {
     data: Record<string, unknown> | unknown[];
     tickers: Ticker[];
     isLoading: boolean;
+    goldUnit: 'oz' | 'goldbacks';
     fetchData: () => Promise<void>;
+    setGoldUnit: (unit: 'oz' | 'goldbacks') => void;
 }
 
 // ── Store ────────────────────────────────────────────────────────────────────
@@ -58,6 +60,9 @@ const useData = create<DataState>()(
             data: [],
             tickers: [],
             isLoading: true,
+            goldUnit: 'oz',
+
+            setGoldUnit: (unit) => set({ goldUnit: unit }, false, 'setGoldUnit'),
 
             fetchData: async () => {
                 try {

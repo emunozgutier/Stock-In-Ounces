@@ -20,7 +20,7 @@ import XAxis from './subcomponents1/XAxis';
 import ToolTip from "./subcomponents1/ToolTip";
 
 const Chart = () => {
-    const { data } = useData();
+    const { data, goldUnit } = useData();
     const { selectedTicker, timeRange, isLogScale, setIsLogScale, referenceMetal, viewMode, setViewMode, activeAxis, setActiveAxis } = useAppState();
     const { metalColors } = useStyle();
     const { deviceType } = useWindow();
@@ -95,26 +95,24 @@ const Chart = () => {
 
     // Determine the scale for the Y-Axis based on the maximum value in the dataset
     const metalAxisConfig = useMemo(() => {
-        if (chartData.length === 0) return { scale: 1, unit: 'Ounces', label: 'Oz' };
+        if (chartData.length === 0) return { scale: 1, unit: 'Ounces', label: 'oz', legendSuffix: 'oz', tickPrefix: '' };
+
+        if (referenceMetal === 'Inflation Adjusted $') {
+            return { scale: 1, unit: 'Dollars', label: '$ (Adj)', legendSuffix: '$', tickPrefix: '' };
+        }
 
         const maxVal = Math.max(...chartData.map(d => Math.abs(d.priceMetal || 0)));
 
-        if (maxVal === 0) return { scale: 1, unit: 'Ounces', label: 'Oz' };
-
-        if (referenceMetal === 'Inflation Adjusted $') {
-            return { scale: 1, unit: 'Dollars', label: '$ (Adj)' };
+        // Auto-switch to goldbacks when values are small (< 0.1 oz) OR when manually forced
+        const useGoldbacks = goldUnit === 'goldbacks' || maxVal < 0.1;
+        if (useGoldbacks) {
+            if (referenceMetal === 'Gold')     return { scale: 1000, unit: 'Goldbacks',     label: 'Goldbacks',     legendSuffix: 'Goldback (1/1000 oz)',     tickPrefix: '₲ ' };
+            if (referenceMetal === 'Platinum') return { scale: 1000, unit: 'Platinumbacks', label: 'Platinumbacks', legendSuffix: 'Platinumback (1/1000 oz)', tickPrefix: '' };
         }
 
-        if (maxVal < 0.001) {
-            return { scale: 1000000, unit: 'micro Oz', label: 'µoz', legendSuffix: 'µoz', tickPrefix: '' };
-        } else if (maxVal < 1) {
-            if (referenceMetal === 'Gold') return { scale: 1000, unit: 'Goldbacks', label: 'Goldbacks', legendSuffix: 'Goldback (1000th of gold ounce)', tickPrefix: '₲ ' };
-            if (referenceMetal === 'Platinum') return { scale: 1000, unit: 'Platinumbacks', label: 'Platinumbacks', legendSuffix: 'Platinumback (1000th of platinum ounce)', tickPrefix: '' };
-            return { scale: 1000, unit: 'milli Oz', label: 'moz', legendSuffix: 'moz', tickPrefix: '' };
-        } else {
-            return { scale: 1, unit: 'Ounces', label: 'oz', legendSuffix: 'oz', tickPrefix: '' };
-        }
-    }, [chartData, referenceMetal]);
+        // Default: plain oz
+        return { scale: 1, unit: 'Ounces', label: 'oz', legendSuffix: 'oz', tickPrefix: '' };
+    }, [chartData, referenceMetal, goldUnit]);
 
     const formatMetalAxisTick = (value) => {
         if (viewMode !== 'units') return `${value.toFixed(0)}%`;
@@ -133,7 +131,13 @@ const Chart = () => {
             return `$${value.toFixed(2)} (Adj)`;
         }
 
-        return `${Number(value).toPrecision(4)} oz`;
+        // Format using the active axis unit so tooltip always matches the Y-axis
+        const scaled = value * metalAxisConfig.scale;
+        const prefix = metalAxisConfig.tickPrefix || '';
+        const suffix = metalAxisConfig.unit === 'Goldbacks'     ? ' Goldback'
+            : metalAxisConfig.unit === 'Platinumbacks' ? ' Platinumback'
+            : ' oz';
+        return `${prefix}${Number(scaled).toPrecision(4)}${suffix}`;
     };
 
     const formatUSD = (value) => {
