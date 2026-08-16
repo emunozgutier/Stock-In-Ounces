@@ -384,6 +384,7 @@ const Chart = () => {
                                     metalColors={metalColors}
                                     formatMetalTooltip={formatMetalTooltip}
                                     formatUSD={formatUSD}
+                                    metalScale={metalAxisConfig.scale}
                                 />
                             )}
                         />

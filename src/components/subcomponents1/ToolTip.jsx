@@ -1,10 +1,33 @@
 import React, { useEffect } from 'react';
 import useSelection from '../../store/useSelection';
-import useChart from '../../store/useChart';
 
-const ToolTip = ({ active, payload, label, referenceMetal, metalColors, formatMetalTooltip, formatUSD }) => {
+// 3-column row: label (flex) | symbol (fixed) | number (fixed right-aligned)
+const Row = ({ label, labelColor, symbol, symbolHref, value, small, topBorder }) => (
+    <div style={{
+        display: 'grid',
+        gridTemplateColumns: '1fr 22px 92px',
+        columnGap: '6px',
+        alignItems: 'baseline',
+        marginBottom: topBorder ? 0 : 4,
+        marginTop: topBorder ? 8 : 0,
+        paddingTop: topBorder ? 8 : 0,
+        borderTop: topBorder ? '1px solid #374151' : undefined,
+        fontSize: small ? '0.8em' : undefined,
+    }}>
+        <span style={{ color: labelColor }}>{label}</span>
+        <span style={{ textAlign: 'right', paddingRight: 4 }}>
+            {symbolHref
+                ? <a href={symbolHref} target="_blank" rel="noopener noreferrer"
+                     style={{ color: '#64B5F6', textDecoration: 'none', fontFamily: 'monospace' }}>{symbol}</a>
+                : <span style={{ color: '#adb5bd', fontFamily: 'monospace' }}>{symbol}</span>
+            }
+        </span>
+        <span style={{ textAlign: 'right', fontFamily: 'monospace', color: '#f8f9fa' }}>{value}</span>
+    </div>
+);
+
+const ToolTip = ({ active, payload, label, referenceMetal, metalColors, formatUSD, metalScale }) => {
     const { setHoverPoint } = useSelection();
-    const { goldUnit } = useChart();
 
     useEffect(() => {
         if (active && payload && payload.length) {
@@ -20,96 +43,100 @@ const ToolTip = ({ active, payload, label, referenceMetal, metalColors, formatMe
         }
     }, [active, payload, label]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    if (active && payload && payload.length) {
-        // payload order varies, find by name/dataKey
-        const metalItem = payload.find(p => p.dataKey === 'priceMetal');
-        const usdItem = payload.find(p => p.dataKey === 'PriceUSD');
+    if (!active || !payload || !payload.length) return null;
 
-        const priceMetal = metalItem ? metalItem.value : 0;
-        const priceUSD = usdItem ? usdItem.value : 0;
+    const metalItem = payload.find(p => p.dataKey === 'priceMetal');
+    const usdItem   = payload.find(p => p.dataKey === 'PriceUSD');
 
-        const parseDate = (str) => {
-            if (!str || typeof str !== 'string') return new Date();
-            const parts = str.split('-');
-            if (parts.length !== 3) return new Date(str);
-            const [year, month, day] = parts.map(Number);
-            return new Date(year, month - 1, day);
-        };
+    const priceMetal = metalItem?.value ?? 0;
+    const priceUSD   = usdItem?.value   ?? 0;
 
-        const dateObj = parseDate(label);
-        const formattedDate = dateObj.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+    // Parse date
+    const parseDate = (str) => {
+        if (!str || typeof str !== 'string') return new Date();
+        const parts = str.split('-');
+        if (parts.length !== 3) return new Date(str);
+        const [year, month, day] = parts.map(Number);
+        return new Date(year, month - 1, day);
+    };
+    const formattedDate = parseDate(label).toLocaleDateString(undefined, {
+        weekday: 'short', month: 'short', day: 'numeric', year: 'numeric',
+    });
 
-        const showGoldbacks = ['Gold', 'Platinum'].includes(referenceMetal) && priceMetal > 0;
-        const gbPrefix = referenceMetal === 'Gold' ? '₲' : 'PB';
-        const gbValue = (priceMetal * 1000).toPrecision(4);
-        const ozValue = `${Number(priceMetal).toPrecision(4)} oz`;
+    // Determine display unit from the axis scale passed in by Chart.jsx
+    const isGoldbacks  = metalScale === 1000 && ['Gold', 'Platinum'].includes(referenceMetal) && priceMetal > 0;
+    const isInflation  = referenceMetal === 'Inflation Adjusted $';
+    const gbPrefix     = referenceMetal === 'Gold' ? '₲' : 'PB';
+    const gbHref       = referenceMetal === 'Gold' ? 'https://goldback.com' : null;
 
-        return (
-            <div className="custom-tooltip bg-dark p-2 border border-secondary rounded shadow-sm" style={{ backgroundColor: '#212529', minWidth: '220px' }}>
-                <p className="label text-warning mb-2 fw-bold border-bottom border-secondary pb-1">
-                    {formattedDate}
-                </p>
+    // Format values — no unit suffix after the number
+    const metalDisplay = isInflation
+        ? { symbol: '$',      symbolHref: null,   value: priceMetal.toFixed(2) }
+        : isGoldbacks
+            ? { symbol: gbPrefix, symbolHref: gbHref, value: (priceMetal * 1000).toPrecision(4) }
+            : { symbol: '',       symbolHref: null,   value: `${Number(priceMetal).toPrecision(4)} oz` };
 
-                {/* Primary metal row — matches the Y-axis unit */}
-                <div className="d-flex justify-content-between mb-1">
-                    <span style={{ color: metalColors[referenceMetal] }}>
-                        {referenceMetal === 'Inflation Adjusted $' ? 'Adjusted Price:'
-                            : goldUnit === 'goldbacks' && showGoldbacks ? `Price (${referenceMetal}backs):`
-                            : `Price in ${referenceMetal}:`}
-                    </span>
-                    <span className="fw-mono text-light">
-                        {goldUnit === 'goldbacks' && showGoldbacks ? (
-                            <>
-                                <a href="https://goldback.com" target="_blank" rel="noopener noreferrer" className="text-info text-decoration-none me-1">{gbPrefix}</a>
-                                {gbValue}
-                            </>
-                        ) : formatMetalTooltip(priceMetal)}
-                    </span>
-                </div>
+    const metalColor = metalColors[referenceMetal] ?? '#adb5bd';
 
-                {/* Secondary metal row — the other unit */}
-                {showGoldbacks && goldUnit === 'oz' && (
-                    <div className="d-flex justify-content-between mb-1">
-                        <span style={{ color: metalColors[referenceMetal] }}>
-                            Price in {referenceMetal}backs:
-                        </span>
-                        <span className="fw-mono text-light">
-                            <a href="https://goldback.com" target="_blank" rel="noopener noreferrer" className="text-info text-decoration-none me-1">{gbPrefix}</a>
-                            {gbValue}
-                        </span>
-                    </div>
-                )}
-                {showGoldbacks && goldUnit === 'goldbacks' && (
-                    <div className="d-flex justify-content-between mb-1">
-                        <span style={{ color: metalColors[referenceMetal] }}>
-                            Price in {referenceMetal} (oz):
-                        </span>
-                        <span className="fw-mono text-light">{ozValue}</span>
-                    </div>
-                )}
+    // USD row: strip leading $ from formatUSD so the symbol sits in its own column
+    const usdFormatted = formatUSD(priceUSD);
+    const usdSymbol    = usdFormatted.startsWith('$') ? '$' : '';
+    const usdValue     = usdFormatted.startsWith('$') ? usdFormatted.slice(1) : usdFormatted;
 
-                <div className="d-flex justify-content-between mb-1">
-                    <span style={{ color: '#10B981' }}>Nominal Price (USD):</span>
-                    <span className="fw-mono text-light">{formatUSD(priceUSD)}</span>
-                </div>
-                {priceUSD > 0 && priceMetal > 0 && (
-                    <div className="d-flex justify-content-between mt-2 pt-2 border-top border-secondary">
-                        <span className="text-warning small fst-italic">
-                            {referenceMetal === 'Inflation Adjusted $' ? 'Inflation Multiplier:' : `1 Oz ${referenceMetal}:`}
-                        </span>
-                        <span className="fw-mono text-light small">
-                            {referenceMetal === 'Inflation Adjusted $'
-                                ? (priceMetal / priceUSD).toFixed(4)
-                                : formatUSD(priceUSD / priceMetal)
-                            }
-                        </span>
-                    </div>
-                )}
-            </div>
-        );
-    }
+    // Footer: gold spot price
+    const showFooter  = priceUSD > 0 && priceMetal > 0;
+    const footerLabel = isInflation ? 'Inflation Multiplier:' : `1 oz ${referenceMetal}:`;
+    const footerRaw   = isInflation
+        ? (priceMetal / priceUSD).toFixed(4)
+        : formatUSD(priceUSD / priceMetal);
+    const footerSymbol = footerRaw.startsWith('$') ? '$' : '';
+    const footerValue  = footerRaw.startsWith('$') ? footerRaw.slice(1) : footerRaw;
 
-    return null;
+    return (
+        <div className="custom-tooltip" style={{
+            backgroundColor: '#212529',
+            border: '1px solid #495057',
+            borderRadius: 6,
+            padding: '10px 14px',
+            width: 'max-content',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+        }}>
+            {/* Date header */}
+            <p style={{ color: '#FCD34D', fontWeight: 700, marginBottom: 8,
+                        borderBottom: '1px solid #374151', paddingBottom: 6 }}>
+                {formattedDate}
+            </p>
+
+            {/* Metal price row */}
+            <Row
+                label={isInflation ? 'Adjusted Price:' : `Price in ${referenceMetal}:`}
+                labelColor={metalColor}
+                symbol={metalDisplay.symbol}
+                symbolHref={metalDisplay.symbolHref}
+                value={metalDisplay.value}
+            />
+
+            {/* USD row */}
+            <Row
+                label="Nominal Price:"
+                labelColor="#10B981"
+                symbol={usdSymbol}
+                value={usdValue}
+            />
+
+            {/* Footer: spot price */}
+            {showFooter && (
+                <Row
+                    label={footerLabel}
+                    labelColor="#FCD34D"
+                    symbol={footerSymbol}
+                    value={footerValue}
+                    small
+                    topBorder
+                />
+            )}
+        </div>
+    );
 };
 
 export default ToolTip;
