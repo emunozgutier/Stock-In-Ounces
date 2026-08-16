@@ -15,6 +15,10 @@ interface AppState {
     isSearchOpen: boolean;
     isWelcomeModalOpen: boolean;
 
+    // UI state — chart
+    viewMode: 'units' | 'relative' | 'absolute';
+    activeAxis: 'metal' | 'usd';
+
     // Setters — settings
     setSelectedTicker: (ticker: string) => void;
     setSearchTerm: (term: string) => void;
@@ -27,6 +31,10 @@ interface AppState {
     setIsMenuOpen: (open: boolean) => void;
     setIsSearchOpen: (open: boolean) => void;
     setIsWelcomeModalOpen: (open: boolean) => void;
+
+    // Setters — chart UI
+    setViewMode: (mode: 'units' | 'relative' | 'absolute') => void;
+    setActiveAxis: (axis: 'metal' | 'usd') => void;
 }
 
 const useState = create<AppState>()(
@@ -44,6 +52,10 @@ const useState = create<AppState>()(
             isMenuOpen: false,
             isSearchOpen: false,
             isWelcomeModalOpen: false,
+
+            // UI state — chart
+            viewMode: 'units',
+            activeAxis: 'metal',
 
             // Setters — settings
             setSelectedTicker: (ticker) => set({ selectedTicker: ticker }, false, 'setSelectedTicker'),
@@ -65,6 +77,10 @@ const useState = create<AppState>()(
             setIsMenuOpen: (open) => set({ isMenuOpen: open }, false, 'setIsMenuOpen'),
             setIsSearchOpen: (open) => set({ isSearchOpen: open }, false, 'setIsSearchOpen'),
             setIsWelcomeModalOpen: (open) => set({ isWelcomeModalOpen: open }, false, 'setIsWelcomeModalOpen'),
+
+            // Setters — chart UI
+            setViewMode: (mode) => set({ viewMode: mode }, false, 'setViewMode'),
+            setActiveAxis: (axis) => set({ activeAxis: axis }, false, 'setActiveAxis'),
         }),
         { name: 'AppState' }
     )

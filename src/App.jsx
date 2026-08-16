@@ -1,25 +1,26 @@
-import React, { useState } from 'react';
-
+import React, { useEffect } from 'react';
 import { Github } from 'lucide-react';
-import { DataProvider, useDataContext } from './store/DataContext';
+import useData from './store/useData';
 import useAppState from './store/useState';
 import useWindow from './store/useWindow';
 import Chart from './components/Chart';
-import { useEffect } from 'react';
 
-function AppContent({ loading }) {
-  const { data } = useDataContext();
+function App() {
+  const { data, isLoading, fetchData } = useData();
   const { referenceMetal } = useAppState();
   const { setDeviceType } = useWindow();
+
+  // Kick off data fetch once on mount
+  useEffect(() => { fetchData(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Compute last update date from data
   const lastUpdate = React.useMemo(() => {
     if (!data) return null;
-    let records = [];
+    let records: any[] = [];
     if (Array.isArray(data)) {
-      records = data;
-    } else if (data['1y']) {
-      records = data['1y'];
+      records = data as any[];
+    } else if ((data as any)['1y']) {
+      records = (data as any)['1y'];
     }
     if (records.length > 0 && records[records.length - 1].Date) {
       return records[records.length - 1].Date;
@@ -27,24 +28,17 @@ function AppContent({ loading }) {
     return null;
   }, [data]);
 
-  // Device Detection Logic
+  // Device detection — sets deviceType in useWindow store
   useEffect(() => {
     const handleResize = () => {
       const width = window.innerWidth;
       const height = window.innerHeight;
-
       let type = 'Monitor';
       if (width < 1024) {
-        if (height > width) {
-          type = 'Phone Vertical';
-        } else {
-          type = 'Phone Horizontal';
-        }
+        type = height > width ? 'Phone Vertical' : 'Phone Horizontal';
       }
-
       setDeviceType(type);
     };
-
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
@@ -99,7 +93,7 @@ function AppContent({ loading }) {
         </header>
 
         <main className="flex-grow-1 d-flex flex-column overflow-hidden px-2 pb-2">
-          {loading ? (
+          {isLoading ? (
             <div className="d-flex justify-content-center align-items-center h-100">
               <div className="spinner-border text-warning" role="status">
                 <span className="visually-hidden">Loading...</span>
@@ -115,16 +109,6 @@ function AppContent({ loading }) {
         </main>
       </div>
     </div>
-  );
-}
-
-function App() {
-  const [loading, setLoading] = useState(true);
-
-  return (
-    <DataProvider onLoadingChange={setLoading}>
-      <AppContent loading={loading} />
-    </DataProvider>
   );
 }
 

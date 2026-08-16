@@ -1,6 +1,23 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import useSelection from '../../store/useSelection';
 
 const ToolTip = ({ active, payload, label, referenceMetal, metalColors, formatMetalTooltip, formatUSD }) => {
+    const { setHoverPoint } = useSelection();
+
+    useEffect(() => {
+        if (active && payload && payload.length) {
+            const metalItem = payload.find(p => p.dataKey === 'priceMetal');
+            const usdItem   = payload.find(p => p.dataKey === 'PriceUSD');
+            setHoverPoint({
+                date:        label ?? null,
+                metalValue:  metalItem?.value ?? null,
+                dollarValue: usdItem?.value   ?? null,
+            });
+        } else {
+            setHoverPoint(null);
+        }
+    }, [active, payload, label]); // eslint-disable-line react-hooks/exhaustive-deps
+
     if (active && payload && payload.length) {
         // payload order varies, find by name/dataKey
         const metalItem = payload.find(p => p.dataKey === 'priceMetal');

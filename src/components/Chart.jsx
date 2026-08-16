@@ -7,11 +7,12 @@ import {
     ResponsiveContainer,
     ComposedChart
 } from 'recharts';
-import { useDataContext } from '../store/DataContext';
+import useData from '../store/useData';
 import useAppState from '../store/useState';
 import useStyle from '../store/useStyle';
 import useWindow from '../store/useWindow';
-import { useMemo, useState, useEffect } from 'react';
+import useSelection from '../store/useSelection';
+import { useMemo, useEffect, useCallback, useRef } from 'react';
 import ChartHeader from './subcomponents1/ChartHeader';
 
 import YAxis from './subcomponents1/YAxis';
@@ -19,21 +20,14 @@ import XAxis from './subcomponents1/XAxis';
 import ToolTip from "./subcomponents1/ToolTip";
 
 const Chart = () => {
-    const { data } = useDataContext();
-    const { selectedTicker, timeRange, isLogScale, setIsLogScale, referenceMetal } = useAppState();
+    const { data } = useData();
+    const { selectedTicker, timeRange, isLogScale, setIsLogScale, referenceMetal, viewMode, setViewMode, activeAxis, setActiveAxis } = useAppState();
     const { metalColors } = useStyle();
     const { deviceType } = useWindow();
-    const [viewMode, setViewMode] = useState('units'); // 'units', 'relative', 'absolute'
+    const { startDrag, updateDrag, endDrag } = useSelection();
 
-    // Mobile Detection
-    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-    const [activeAxis, setActiveAxis] = useState('metal'); // 'metal' or 'usd'
-
-    useEffect(() => {
-        const handleResize = () => setIsMobile(window.innerWidth < 768);
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
+    // Derive isMobile from the shared deviceType (already kept in sync by App.jsx)
+    const isMobile = deviceType !== 'Monitor';
 
     const chartData = useMemo(() => {
         if (!data || !selectedTicker) return [];
@@ -186,6 +180,29 @@ const Chart = () => {
         return [pmin, pmax];
     }, [chartData, referenceMetal]);
 
+    // ── Selection helpers (drag only — hover is handled inside ToolTip) ────────
+    // chartRef lets us correlate pixel position → nearest data point for drag
+    const chartRef = useRef(null);
+
+    const handleDragMouseDown = useCallback((e) => {
+        // We store the drag-start position; the actual point will be resolved
+        // by ToolTip via its payload when the user moves/releases.
+        // Use the lastHoverPoint stored in the store as the start.
+        const current = useSelection.getState().hoverPoint;
+        if (current) startDrag(current);
+    }, [startDrag]);
+
+    const handleDragMouseMove = useCallback(() => {
+        const current = useSelection.getState().hoverPoint;
+        if (current) updateDrag(current);
+    }, [updateDrag]);
+
+    const handleDragMouseUp = useCallback(() => {
+        const current = useSelection.getState().hoverPoint;
+        endDrag(current ?? { date: null, metalValue: null, dollarValue: null });
+    }, [endDrag]);
+    // ─────────────────────────────────────────────────────────────────────────
+
     const renderContent = () => {
         if (!selectedTicker) {
             return <div className="d-flex justify-content-center align-items-center h-100 text-secondary">Select a stock to view its price in {referenceMetal}.</div>;
@@ -199,7 +216,10 @@ const Chart = () => {
         }
         return (
             <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={chartData} margin={{ left: 25, right: 30 }}>
+                <ComposedChart
+                    data={chartData}
+                    margin={{ left: 25, right: 30 }}
+                >
                     <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                     <XAxis timeRange={timeRange} />
                     <YAxis
@@ -309,17 +329,14 @@ const Chart = () => {
 
     return (
         <div className="d-flex flex-column h-100 w-100 bg-dark border border-secondary rounded overflow-hidden shadow-lg">
-            <ChartHeader
-                isLogScale={isLogScale}
-                setIsLogScale={setIsLogScale}
-                viewMode={viewMode}
-                setViewMode={setViewMode}
-                activeAxis={activeAxis}
-                setActiveAxis={setActiveAxis}
-                isMobile={isMobile}
-            />
+            <ChartHeader />
 
-            <div className="flex-grow-1 min-h-0 w-100 p-2 position-relative">
+            <div
+                className="flex-grow-1 min-h-0 w-100 p-2 position-relative"
+                onMouseDown={handleDragMouseDown}
+                onMouseMove={handleDragMouseMove}
+                onMouseUp={handleDragMouseUp}
+            >
                 {renderContent()}
             </div>
         </div>
