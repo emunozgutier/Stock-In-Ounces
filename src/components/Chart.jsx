@@ -96,32 +96,78 @@ const Chart = () => {
     }, [data, selectedTicker, timeRange, isLogScale, referenceMetal]);
 
     // ── Zero-count heuristic ───────────────────────────────────────────────────
-    // For each data point's priceMetal value, count how many leading zeros the
-    // formatted number would have when shown as oz vs goldbacks (×1000).
-    // Summing across all points gives a score — fewer zeros = cleaner display.
+    // Count "non-significant" zeros in a number — the zeros that only indicate
+    // scale/magnitude rather than carrying information:
+    //
+    //   v < 1  → Math.ceil(-log10(v))   (leading zeros including "0." prefix)
+    //              0.6     → 1   (just the "0." prefix)
+    //              0.17304 → 1   (ceil(0.762) = 1)
+    //              0.017304→ 2   (ceil(1.762) = 2)
+    //   v >= 1 → trailing zeros in floor(v)
+    //              1.7304  → 0
+    //              600     → 2   (600 % 10 = 0 → 1, 60 % 10 = 0 → 2)
+    //              5000    → 3
+    //
+    // Computed over NICE Y-AXIS TICK VALUES (1–9 per decade between min and max)
+    // so the result reflects what the user actually sees on the chart — not the
+    // raw per-row data which can skew the comparison for wide-range datasets.
     const displayZeros = useMemo(() => {
         const isGoldPlatinum = ['Gold', 'Platinum'].includes(referenceMetal);
         if (!isGoldPlatinum || chartData.length === 0) {
             return { goldbacksZeros: 0, ozZeros: 0 };
         }
 
-        // Number of leading zeros after the decimal point before the first nonzero digit.
-        // e.g. 0.00423 → 2,  0.423 → 0,  4.23 → 0
-        const leadingZeros = (v) => {
-            if (!v || v <= 0 || v >= 1) return 0;
-            return Math.floor(-Math.log10(v));
+        const countZeros = (v) => {
+            if (!v || v <= 0) return 0;
+            if (v < 1) {
+                // ceil correctly handles exact powers of 10:
+                //   0.1 → ceil(1) = 1   (floor+1 would give 2 — wrong)
+                return Math.ceil(-Math.log10(v));
+            } else {
+                // Count trailing zeros in the integer part
+                let count = 0;
+                let n = Math.floor(v);
+                while (n > 0 && n % 10 === 0) { count++; n = Math.floor(n / 10); }
+                return count;
+            }
         };
 
-        let gbZeros = 0;
+        // Compute the domain of priceMetal values in the current chartData
+        const values = chartData.map(d => d.priceMetal).filter(v => v != null && v > 0);
+        if (values.length === 0) return { goldbacksZeros: 0, ozZeros: 0 };
+        const minVal = Math.min(...values);
+        const maxVal = Math.max(...values);
+
+        // Generate nice Y-axis tick candidates: digits 1–9 at each decade in [minVal, maxVal]
+        // e.g. domain [0.3, 5] → [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 2, 3, 4, 5]
+        const minPow = Math.floor(Math.log10(minVal));
+        const maxPow = Math.ceil(Math.log10(maxVal));
+        let ticks = [];
+        for (let p = minPow; p <= maxPow; p++) {
+            const scale = Math.pow(10, p);
+            for (let n = 1; n <= 9; n++) {
+                const tick = n * scale;
+                if (tick >= minVal * 0.9999 && tick <= maxVal * 1.0001) {
+                    ticks.push(tick);
+                }
+            }
+        }
+
+        // Fallback for very narrow ranges where no nice ticks fall inside
+        if (ticks.length === 0) {
+            const step = (maxVal - minVal) / 4;
+            ticks = [0, 1, 2, 3, 4].map(i => minVal + i * step);
+        }
+
         let oZeros = 0;
-        for (const d of chartData) {
-            const v = d.priceMetal;
-            if (v == null || v <= 0) continue;
-            gbZeros += leadingZeros(v * 1000); // value as goldbacks (×1000)
-            oZeros  += leadingZeros(v);         // value as oz (×1)
+        let gbZeros = 0;
+        for (const tick of ticks) {
+            oZeros  += countZeros(tick);
+            gbZeros += countZeros(tick * 1000);
         }
         return { goldbacksZeros: gbZeros, ozZeros: oZeros };
     }, [chartData, referenceMetal]);
+
 
     // Sync computed zeros to the store so any external component can read them
     useEffect(() => {
@@ -138,12 +184,13 @@ const Chart = () => {
         }
 
         // Resolve effective unit:
-        //   'auto'      → whichever representation has fewer total leading zeros
+        //   'auto'      → goldbacks ONLY if strictly fewer zeros than oz
+        //                 (tie → oz wins, since oz is the natural base unit)
         //   'oz'        → always plain oz
         //   'goldbacks' → always goldbacks
         const effectiveGoldbacks =
             goldUnit === 'goldbacks' ||
-            (goldUnit === 'auto' && displayZeros.goldbacksZeros <= displayZeros.ozZeros);
+            (goldUnit === 'auto' && displayZeros.goldbacksZeros < displayZeros.ozZeros);
 
         if (effectiveGoldbacks) {
             if (referenceMetal === 'Gold')     return { scale: 1000, unit: 'Goldbacks',     label: 'Goldbacks',     legendSuffix: 'Goldback (1/1000 oz)',     tickPrefix: '₲ ' };
