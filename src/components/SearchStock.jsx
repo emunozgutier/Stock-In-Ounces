@@ -1,10 +1,10 @@
 import { useState, useMemo } from 'react';
-import { useDataContext } from '../store/DataContext';
+import useData from '../store/useData';
 import useAppState from '../store/useState';
 import { Search } from 'lucide-react';
 
 const SearchStock = () => {
-    const { tickers } = useDataContext();
+    const { tickers } = useData();
     const { setSelectedTicker } = useAppState();
     const [query, setQuery] = useState('');
     const [isOpen, setIsOpen] = useState(false);

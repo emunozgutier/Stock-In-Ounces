@@ -16,11 +16,11 @@ function App() {
   // Compute last update date from data
   const lastUpdate = React.useMemo(() => {
     if (!data) return null;
-    let records: any[] = [];
+    let records = [];
     if (Array.isArray(data)) {
-      records = data as any[];
-    } else if ((data as any)['1y']) {
-      records = (data as any)['1y'];
+      records = data;
+    } else if (data['1y']) {
+      records = data['1y'];
     }
     if (records.length > 0 && records[records.length - 1].Date) {
       return records[records.length - 1].Date;

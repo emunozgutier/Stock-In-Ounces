@@ -7,11 +7,12 @@ import SearchStock from '../SearchStock';
 import MetalSelector from './MetalSelector';
 import { Settings } from 'lucide-react';
 
-const ChartHeader = ({ isLogScale, setIsLogScale, viewMode, setViewMode, activeAxis, setActiveAxis, isMobile }) => {
-    const { selectedTicker, referenceMetal } = useAppState();
+const ChartHeader = () => {
+    const { selectedTicker, referenceMetal, activeAxis, setActiveAxis } = useAppState();
     const { deviceType } = useWindow();
     const [showSettings, setShowSettings] = useState(false);
 
+    const isMobile = deviceType !== 'Monitor';
     const isPhoneHorizontal = deviceType === 'Phone Horizontal';
 
     return (
@@ -63,12 +64,7 @@ const ChartHeader = ({ isLogScale, setIsLogScale, viewMode, setViewMode, activeA
                                 className="position-absolute end-0 mt-2 p-3 bg-dark border border-secondary rounded shadow-lg"
                                 style={{ zIndex: 1000, width: 'max-content', minWidth: '200px' }}
                             >
-                                <ChartSettings
-                                    isLogScale={isLogScale}
-                                    setIsLogScale={setIsLogScale}
-                                    viewMode={viewMode}
-                                    setViewMode={setViewMode}
-                                />
+                                <ChartSettings />
                             </div>
                         )}
                     </div>

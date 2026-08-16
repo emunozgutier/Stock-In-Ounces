@@ -1,7 +1,10 @@
 import React from 'react';
+import useAppState from '../../../store/useState';
 import TimeScale from './TimeScale';
 
-const ChartSettings = ({ isLogScale, setIsLogScale, viewMode, setViewMode }) => {
+const ChartSettings = () => {
+    const { isLogScale, setIsLogScale, viewMode, setViewMode } = useAppState();
+
     return (
         <div className="d-flex flex-column gap-3">
             {/* View Mode */}
