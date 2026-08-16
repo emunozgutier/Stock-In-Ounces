@@ -1,77 +1,100 @@
 import useData from '../../../store/useData';
 import useAppState from '../../../store/useState';
+import useSelection from '../../../store/useSelection';
 import { useMemo } from 'react';
 
+// ── Pure helper — no component deps ─────────────────────────────────────────
+const computeGrowth = (startDate, endDate, valStart, valEnd) => {
+    if (valStart == null || valEnd == null || valStart === 0) return null;
+
+    const totalGrowth = ((valEnd - valStart) / valStart) * 100;
+    const timeDiff = new Date(endDate) - new Date(startDate);
+    const days = timeDiff / (1000 * 60 * 60 * 24);
+    const years = days / 365.25;
+
+    let annualizedGrowth = 0;
+    if (years > 0 && valStart > 0 && valEnd > 0) {
+        annualizedGrowth = (Math.pow(valEnd / valStart, 1 / years) - 1) * 100;
+    }
+    return { totalGrowth, annualizedGrowth, years };
+};
+
+const formatShortDate = (dateStr) => {
+    if (!dateStr) return '';
+    const [y, m, d] = dateStr.split('-').map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+};
+
+// ── Component ─────────────────────────────────────────────────────────────────
 const RoiCalc = () => {
     const { data } = useData();
     const { selectedTicker, timeRange, referenceMetal } = useAppState();
+    const { dragSelection, clearDragSelection } = useSelection();
 
-    // Helper to calculate growth between two values over a time period
-    const computeGrowth = (startItem, endItem, valStart, valEnd) => {
-        if (valStart == null || valEnd == null || valStart === 0) return null;
-
-        const totalGrowth = ((valEnd - valStart) / valStart) * 100;
-        const timeDiff = new Date(endItem.Date) - new Date(startItem.Date);
-        const days = timeDiff / (1000 * 60 * 60 * 24);
-        const years = days / 365.25;
-
-        let annualizedGrowth = 0;
-        if (years > 0 && valStart > 0 && valEnd > 0) {
-            annualizedGrowth = (Math.pow(valEnd / valStart, 1 / years) - 1) * 100;
-        }
-        return { totalGrowth, annualizedGrowth, years };
-    };
+    // A selection is valid when both endpoints have different dates
+    const hasSelection =
+        dragSelection?.start?.date &&
+        dragSelection?.end?.date &&
+        dragSelection.start.date !== dragSelection.end.date;
 
     const allStats = useMemo(() => {
-        if (!data || !selectedTicker) return null;
+        if (!selectedTicker) return null;
 
-        // 1. Get correct timeframe data
-        // Data is now { "1y": [...], "5y": [...] }
+        // ── Custom drag-selection range ────────────────────────────────────
+        if (hasSelection) {
+            const { start, end } = dragSelection;
+            // Normalise chronological order
+            const [s, e] = start.date < end.date ? [start, end] : [end, start];
+
+            const usdStats   = computeGrowth(s.date, e.date, s.dollarValue, e.dollarValue);
+            const metalStats = computeGrowth(s.date, e.date, s.metalValue,  e.metalValue);
+
+            return {
+                metal: metalStats,
+                usd: usdStats,
+                isCustomRange: true,
+                startDate: s.date,
+                endDate: e.date,
+            };
+        }
+
+        // ── Default: first → last of current timeframe ─────────────────────
+        if (!data) return null;
+
         let timeFrameData = [];
         if (Array.isArray(data)) {
             timeFrameData = data;
         } else {
             timeFrameData = data[timeRange.toLowerCase()] || data[timeRange] || [];
         }
-
         if (timeFrameData.length === 0) return null;
 
-        // 2. Select start/end items (data is already sorted)
-        const slicedData = timeFrameData;
-        const startItem = slicedData[0];
-        const endItem = slicedData[slicedData.length - 1];
-
+        const startItem = timeFrameData[0];
+        const endItem   = timeFrameData[timeFrameData.length - 1];
         if (!startItem || !endItem) return null;
 
-        // 3. Compute USD Growth
-        // PriceUSD is now just the ticker value in the object (e.g. item["VOO"])
         const startUsd = startItem[selectedTicker];
-        const endUsd = endItem[selectedTicker];
-        const usdStats = computeGrowth(startItem, endItem, startUsd, endUsd);
+        const endUsd   = endItem[selectedTicker];
+        const usdStats = computeGrowth(startItem.Date, endItem.Date, startUsd, endUsd);
 
-        // 4. Compute Metal Growth (Ratio)
-        // PriceMetal = PriceUSD / PriceReferenceMetal
         const startRef = startItem[referenceMetal];
-        const endRef = endItem[referenceMetal];
-
+        const endRef   = endItem[referenceMetal];
         let metalStats = null;
         if (startRef && endRef && startUsd && endUsd) {
             let startRatio, endRatio;
             if (referenceMetal === 'Inflation Adjusted $') {
-                // referenceMetal value is the multiplier (Latest CPI / Historical CPI)
-                // To get the adjusted price in today's dollars: Price * Multiplier
                 startRatio = startUsd * startRef;
-                endRatio = endUsd * endRef;
+                endRatio   = endUsd   * endRef;
             } else {
                 startRatio = startUsd / startRef;
-                endRatio = endUsd / endRef;
+                endRatio   = endUsd   / endRef;
             }
-            metalStats = computeGrowth(startItem, endItem, startRatio, endRatio);
+            metalStats = computeGrowth(startItem.Date, endItem.Date, startRatio, endRatio);
         }
 
-        return { metal: metalStats, usd: usdStats };
+        return { metal: metalStats, usd: usdStats, isCustomRange: false };
 
-    }, [data, selectedTicker, timeRange, referenceMetal]);
+    }, [data, selectedTicker, timeRange, referenceMetal, hasSelection, dragSelection]);
 
     if (!allStats) return null;
 
@@ -91,7 +114,44 @@ const RoiCalc = () => {
     };
 
     return (
-        <div className="d-flex border-start border-secondary ps-2 ms-2">
+        <div className="d-flex align-items-center border-start border-secondary ps-2 ms-2">
+            {/* Custom range indicator */}
+            {allStats.isCustomRange && (
+                <div className="d-flex flex-column align-items-start me-2">
+                    <div className="d-flex align-items-center gap-1">
+                        <span style={{
+                            fontSize: '0.65rem',
+                            color: '#60A5FA',
+                            background: 'rgba(59,130,246,0.15)',
+                            border: '1px solid rgba(96,165,250,0.4)',
+                            borderRadius: 4,
+                            padding: '1px 5px',
+                            fontWeight: 600,
+                            letterSpacing: '0.03em',
+                            whiteSpace: 'nowrap',
+                        }}>
+                            SELECTED
+                        </span>
+                        <button
+                            onClick={clearDragSelection}
+                            title="Clear selection"
+                            style={{
+                                background: 'none',
+                                border: 'none',
+                                color: '#9CA3AF',
+                                cursor: 'pointer',
+                                padding: '0 2px',
+                                lineHeight: 1,
+                                fontSize: '0.8rem',
+                            }}
+                        >×</button>
+                    </div>
+                    <span style={{ fontSize: '0.65rem', color: '#9CA3AF', whiteSpace: 'nowrap' }}>
+                        {formatShortDate(allStats.startDate)} — {formatShortDate(allStats.endDate)}
+                    </span>
+                </div>
+            )}
+
             {renderStats(allStats.metal, `${referenceMetal}`)}
             {renderStats(allStats.usd, 'USD')}
         </div>

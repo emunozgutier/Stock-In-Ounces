@@ -1,11 +1,11 @@
 import {
-    LineChart,
     Line,
     CartesianGrid,
     Tooltip,
     Legend,
     ResponsiveContainer,
-    ComposedChart
+    ComposedChart,
+    ReferenceArea,
 } from 'recharts';
 import useData from '../store/useData';
 import useChart from '../store/useChart';
@@ -26,7 +26,7 @@ const Chart = () => {
     const { selectedTicker, timeRange, isLogScale, setIsLogScale, referenceMetal, viewMode, setViewMode, activeAxis, setActiveAxis } = useAppState();
     const { metalColors } = useStyle();
     const { deviceType } = useWindow();
-    const { startDrag, updateDrag, endDrag } = useSelection();
+    const { startDrag, updateDrag, endDrag, dragSelection, clearDragSelection } = useSelection();
 
     // Derive isMobile from the shared deviceType (already kept in sync by App.jsx)
     const isMobile = deviceType !== 'Monitor';
@@ -274,10 +274,7 @@ const Chart = () => {
     // chartRef lets us correlate pixel position → nearest data point for drag
     const chartRef = useRef(null);
 
-    const handleDragMouseDown = useCallback((e) => {
-        // We store the drag-start position; the actual point will be resolved
-        // by ToolTip via its payload when the user moves/releases.
-        // Use the lastHoverPoint stored in the store as the start.
+    const handleDragMouseDown = useCallback(() => {
         const current = useSelection.getState().hoverPoint;
         if (current) startDrag(current);
     }, [startDrag]);
@@ -288,8 +285,22 @@ const Chart = () => {
     }, [updateDrag]);
 
     const handleDragMouseUp = useCallback(() => {
-        const current = useSelection.getState().hoverPoint;
-        endDrag(current ?? { date: null, metalValue: null, dollarValue: null });
+        const state = useSelection.getState();
+        const current = state.hoverPoint;
+        // Single click (start === end date) → discard the selection
+        if (state.dragSelection?.start?.date === current?.date) {
+            clearDragSelection();
+        } else {
+            endDrag(current ?? { date: null, metalValue: null, dollarValue: null });
+        }
+    }, [endDrag, clearDragSelection]);
+
+    // Cancel drag if the mouse leaves the chart area mid-drag
+    const handleDragMouseLeave = useCallback(() => {
+        if (useSelection.getState().isDragging) {
+            const current = useSelection.getState().hoverPoint;
+            endDrag(current ?? { date: null, metalValue: null, dollarValue: null });
+        }
     }, [endDrag]);
     // ─────────────────────────────────────────────────────────────────────────
 
@@ -412,11 +423,34 @@ const Chart = () => {
                         dot={false}
                         strokeWidth={2}
                     />
+
+                    {/* Drag-selection highlight */}
+                    {selectionOverlay}
                 </ComposedChart>
             </ResponsiveContainer>
         );
     };
 
+
+    // Build the ReferenceArea overlay once so renderContent() can embed it
+    const selectionOverlay = (() => {
+        if (!dragSelection?.start?.date || !dragSelection?.end?.date) return null;
+        if (dragSelection.start.date === dragSelection.end.date) return null;
+        const [x1, x2] = [dragSelection.start.date, dragSelection.end.date].sort();
+        return (
+            <ReferenceArea
+                yAxisId="left"
+                x1={x1}
+                x2={x2}
+                fill="#3B82F6"
+                fillOpacity={0.15}
+                stroke="#60A5FA"
+                strokeOpacity={0.5}
+                strokeWidth={1}
+                ifOverflow="visible"
+            />
+        );
+    })();
 
     return (
         <div className="d-flex flex-column h-100 w-100 bg-dark border border-secondary rounded overflow-hidden shadow-lg">
@@ -424,9 +458,11 @@ const Chart = () => {
 
             <div
                 className="flex-grow-1 min-h-0 w-100 p-2 position-relative"
+                style={{ cursor: 'crosshair' }}
                 onMouseDown={handleDragMouseDown}
                 onMouseMove={handleDragMouseMove}
                 onMouseUp={handleDragMouseUp}
+                onMouseLeave={handleDragMouseLeave}
             >
                 {renderContent()}
             </div>
