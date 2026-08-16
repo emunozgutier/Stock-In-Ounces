@@ -18,7 +18,7 @@ if (import.meta.env.DEV && typeof window !== 'undefined') {
         register(useStyle, 'StyleStore');
         register(useWindow, 'WindowStore');
         register(useState, 'AppState');
-        register(useSelection, 'SelectionStore');
+        //register(useSelection, 'SelectionStore');
     }
 }
 
