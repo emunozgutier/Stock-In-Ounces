@@ -270,6 +270,47 @@ const Chart = () => {
         return [pmin, pmax];
     }, [chartData, referenceMetal]);
 
+    // ── Log-scale domain synchronisation (first-point anchor) ─────────────────
+    // Strategy: find how many decades each series extends *below* and *above*
+    // its first data point, then take the max for each direction.
+    // Both axes end up with the same (belowDec, aboveDec) budget, so
+    // firstMetal and firstUsd land at the same vertical fraction on the chart.
+    const logSyncDomains = useMemo(() => {
+        if (!isLogScale || chartData.length === 0) return null;
+        if (referenceMetal === 'Inflation Adjusted $') return null; // already unified
+
+        const mVals = chartData.map(d => d.priceMetal).filter(v => v != null && v > 0);
+        const uVals = chartData.map(d => d.PriceUSD).filter(v => v != null && v > 0);
+        if (mVals.length === 0 || uVals.length === 0) return null;
+
+        // First valid value in the time series (leftmost chart point)
+        const firstMetal = chartData.find(d => d.priceMetal > 0)?.priceMetal;
+        const firstUsd   = chartData.find(d => d.PriceUSD   > 0)?.PriceUSD;
+        if (!firstMetal || !firstUsd) return null;
+
+        const mMin = Math.min(...mVals), mMax = Math.max(...mVals);
+        const uMin = Math.min(...uVals), uMax = Math.max(...uVals);
+
+        // Decades from first point down to the series minimum (how far data dips below start)
+        const mBelow = Math.max(0, Math.log10(firstMetal / mMin));
+        const uBelow = Math.max(0, Math.log10(firstUsd   / uMin));
+
+        // Decades from first point up to the series maximum (how far data climbs above start)
+        const mAbove = Math.max(0, Math.log10(mMax / firstMetal));
+        const uAbove = Math.max(0, Math.log10(uMax / firstUsd));
+
+        // Both axes must accommodate the widest excursion in each direction
+        const belowDec = Math.max(mBelow, uBelow);
+        const aboveDec = Math.max(mAbove, uAbove);
+
+        // Domain for each axis: first point sits at the same fraction belowDec/(belowDec+aboveDec)
+        return {
+            metal: [firstMetal / Math.pow(10, belowDec), firstMetal * Math.pow(10, aboveDec)],
+            usd:   [firstUsd   / Math.pow(10, belowDec), firstUsd   * Math.pow(10, aboveDec)],
+        };
+    }, [isLogScale, chartData, referenceMetal]);
+    // ──────────────────────────────────────────────────────────────────────────
+
     // ── Selection helpers (drag only — hover is handled inside ToolTip) ────────
     // chartRef lets us correlate pixel position → nearest data point for drag
     const chartRef = useRef(null);
@@ -348,7 +389,8 @@ const Chart = () => {
                                 const buffer = range * 0.15;
                                 return [mergedMin, mergedMax + buffer];
                             }
-                            if (isLogScale || !metalNeedsPadding) return [min, max];
+                            if (isLogScale) return logSyncDomains ? logSyncDomains.metal : [min, max];
+                            if (!metalNeedsPadding) return [min, max];
                             const range = max - min;
                             const buffer = range * 0.15;
                             return [min, max + buffer];
@@ -379,7 +421,8 @@ const Chart = () => {
                                 const buffer = range * 0.15;
                                 return [mergedMin, mergedMax + buffer];
                             }
-                            if (isLogScale || !usdNeedsPadding) return [min, max];
+                            if (isLogScale) return logSyncDomains ? logSyncDomains.usd : [min, max];
+                            if (!usdNeedsPadding) return [min, max];
                             const range = max - min;
                             const buffer = range * 0.15;
                             return [min, max + buffer];
