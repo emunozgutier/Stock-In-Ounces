@@ -2,16 +2,40 @@
 import yfinance as yf
 import json
 import os
+import sys
 import time
 import pandas as pd
 import io
 import urllib.request as request
-from TimeFrame import get_timeframe_dates
 
-# S&P 500 Tickers (Snapshot)
+try:
+    from TimeFrame import get_timeframe_dates
+except ImportError:
+    from helperScripts.TimeFrame import get_timeframe_dates
+
+# S&P 500 Tickers (Snapshot fallback)
 SP500_TICKERS = [
-    'MMM', 'AOS', 'ABT', 'ABBV', 'ACN', 'ADBE', 'AMD', 'AES', 'AFL', 'A', 'APD', 'ABNB', 'AKAM', 'ALB', 'ARE', 'ALGN', 'ALLE', 'LNT', 'ALL', 'GOOGL', 'GOOG', 'MO', 'AMZN', 'AMCR', 'AEE', 'AEP', 'AXP', 'AIG', 'AMT', 'AWK', 'AMP', 'AME', 'AMGN', 'APH', 'ADI', 'AON', 'APA', 'APO', 'AAPL', 'AMAT', 'APP', 'APTV', 'ACGL', 'ADM', 'ARES', 'ANET', 'AJG', 'AIZ', 'T', 'ATO', 'ADSK', 'ADP', 'AZO', 'AVB', 'AVY', 'AXON', 'BKR', 'BALL', 'BAC', 'BAX', 'BDX', 'BRK-B', 'BBY', 'TECH', 'BIIB', 'BLK', 'BX', 'XYZ', 'BK', 'BA', 'BKNG', 'BSX', 'BMY', 'AVGO', 'BR', 'BRO', 'BF-B', 'BLDR', 'BG', 'BXP', 'CHRW', 'CDNS', 'CPT', 'CPB', 'COF', 'CAH', 'CCL', 'CARR', 'CVNA', 'CAT', 'CBOE', 'CBRE', 'CDW', 'COR', 'CNC', 'CNP', 'CF', 'CRL', 'SCHW', 'CHTR', 'CVX', 'CMG', 'CB', 'CHD', 'CIEN', 'CI', 'CINF', 'CTAS', 'CSCO', 'C', 'CFG', 'CLX', 'CME', 'CMS', 'KO', 'CTSH', 'COIN', 'CL', 'CMCSA', 'FIX', 'CAG', 'COP', 'ED', 'STZ', 'CEG', 'COO', 'CPRT', 'GLW', 'CPAY', 'CTVA', 'CSGP', 'COST', 'CTRA', 'CRH', 'CRWD', 'CCI', 'CSX', 'CMI', 'CVS', 'DHR', 'DRI', 'DDOG', 'DVA', 'DECK', 'DE', 'DELL', 'DAL', 'DVN', 'DXCM', 'FANG', 'DLR', 'DG', 'DLTR', 'D', 'DPZ', 'DASH', 'DOV', 'DOW', 'DHI', 'DTE', 'DUK', 'DD', 'ETN', 'EBAY', 'ECL', 'EIX', 'EW', 'EA', 'ELV', 'EME', 'EMR', 'ETR', 'EOG', 'EPAM', 'EQT', 'EFX', 'EQIX', 'EQR', 'ERIE', 'ESS', 'EL', 'EG', 'EVRG', 'ES', 'EXC', 'EXE', 'EXPE', 'EXPD', 'EXR', 'XOM', 'FFIV', 'FDS', 'FICO', 'FAST', 'FRT', 'FDX', 'FIS', 'FITB', 'FSLR', 'FE', 'FISV', 'F', 'FTNT', 'FTV', 'FOXA', 'FOX', 'BEN', 'FCX', 'GRMN', 'IT', 'GE', 'GEHC', 'GEV', 'GEN', 'GNRC', 'GD', 'GIS', 'GM', 'GPC', 'GILD', 'GPN', 'GL', 'GDDY', 'GS', 'HAL', 'HIG', 'HAS', 'HCA', 'DOC', 'HSIC', 'HSY', 'HPE', 'HLT', 'HOLX', 'HD', 'HON', 'HRL', 'HST', 'HWM', 'HPQ', 'HUBB', 'HUM', 'HBAN', 'HII', 'IBM', 'IEX', 'IDXX', 'ITW', 'INCY', 'IR', 'PODD', 'INTC', 'IBKR', 'ICE', 'IFF', 'IP', 'INTU', 'ISRG', 'IVZ', 'INVH', 'IQV', 'IRM', 'JBHT', 'JBL', 'JKHY', 'J', 'JNJ', 'JCI', 'JPM', 'KVUE', 'KDP', 'KEY', 'KEYS', 'KMB', 'KIM', 'KMI', 'KKR', 'KLAC', 'KHC', 'KR', 'LHX', 'LH', 'LRCX', 'LW', 'LVS', 'LDOS', 'LEN', 'LII', 'LLY', 'LIN', 'LYV', 'LMT', 'L', 'LOW', 'LULU', 'LYB', 'MTB', 'MPC', 'MAR', 'MRSH', 'MLM', 'MAS', 'MA', 'MTCH', 'MKC', 'MCD', 'MCK', 'MDT', 'MRK', 'META', 'MET', 'MTD', 'MGM', 'MCHP', 'MU', 'MSFT', 'MAA', 'MRNA', 'MOH', 'TAP', 'MDLZ', 'MPWR', 'MNST', 'MCO', 'MS', 'MOS', 'MSI', 'MSCI', 'NDAQ', 'NTAP', 'NFLX', 'NEM', 'NWSA', 'NWS', 'NEE', 'NKE', 'NI', 'NDSN', 'NSC', 'NTRS', 'NOC', 'NCLH', 'NRG', 'NUE', 'NVDA', 'NVR', 'NXPI', 'ORLY', 'OXY', 'ODFL', 'OMC', 'ON', 'OKE', 'ORCL', 'OTIS', 'PCAR', 'PKG', 'PLTR', 'PANW', 'PSKY', 'PH', 'PAYX', 'PAYC', 'PYPL', 'PNR', 'PEP', 'PFE', 'PCG', 'PM', 'PSX', 'PNW', 'PNC', 'POOL', 'PPG', 'PPL', 'PFG', 'PG', 'PGR', 'PLD', 'PRU', 'PEG', 'PTC', 'PSA', 'PHM', 'PWR', 'QCOM', 'DGX', 'Q', 'RL', 'RJF', 'RTX', 'O', 'REG', 'REGN', 'RF', 'RSG', 'RMD', 'RVTY', 'HOOD', 'ROK', 'ROL', 'ROP', 'ROST', 'RCL', 'SPGI', 'CRM', 'SNDK', 'SBAC', 'SLB', 'STX', 'SRE', 'NOW', 'SHW', 'SPG', 'SWKS', 'SJM', 'SW', 'SNA', 'SOLV', 'SO', 'LUV', 'SWK', 'SBUX', 'STT', 'STLD', 'STE', 'SYK', 'SMCI', 'SYF', 'SNPS', 'SYY', 'TMUS', 'TROW', 'TTWO', 'TPR', 'TRGP', 'TGT', 'TEL', 'TDY', 'TER', 'TSLA', 'TXN', 'TPL', 'TXT', 'TMO', 'TJX', 'TKO', 'TTD', 'TSCO', 'TT', 'TDG', 'TRV', 'TRMB', 'TFC', 'TYL', 'TSN', 'USB', 'UBER', 'UDR', 'ULTA', 'UNP', 'UAL', 'UPS', 'URI', 'UNH', 'UHS', 'VLO', 'VTR', 'VLTO', 'VRSN', 'VRSK', 'VZ', 'VRTX', 'VTRS', 'VICI', 'V', 'VST', 'VMC', 'WRB', 'GWW', 'WAB', 'WMT', 'DIS', 'WBD', 'WM', 'WAT', 'WEC', 'WFC', 'WELL', 'WST', 'WDC', 'WY', 'WSM', 'WMB', 'WTW', 'WDAY', 'WYNN', 'XEL', 'XYL', 'YUM', 'ZBRA', 'ZBH', 'ZTS'
+    'MMM', 'AOS', 'ABT', 'ABBV', 'ACN', 'ADBE', 'AMD', 'AES', 'AFL', 'A', 'APD', 'ABNB', 'AKAM', 'ALB', 'ARE', 'ALGN', 'ALLE', 'LNT', 'ALL', 'GOOGL', 'GOOG', 'MO', 'AMZN', 'AMCR', 'AEE', 'AEP', 'AXP', 'AIG', 'AMT', 'AWK', 'AMP', 'AME', 'AMGN', 'APH', 'ADI', 'AON', 'APA', 'APO', 'AAPL', 'AMAT', 'APP', 'APTV', 'ACGL', 'ADM', 'ARES', 'ANET', 'AJG', 'AIZ', 'T', 'ATO', 'ADSK', 'ADP', 'AZO', 'AVB', 'AVY', 'AXON', 'BKR', 'BALL', 'BAC', 'BAX', 'BDX', 'BRK-B', 'BBY', 'TECH', 'BIIB', 'BLK', 'BX', 'BNY', 'BA', 'BKNG', 'BSX', 'BMY', 'AVGO', 'BR', 'BRO', 'BF-B', 'BLDR', 'BG', 'BXP', 'CHRW', 'CDNS', 'CPT', 'CPB', 'COF', 'CAH', 'CCL', 'CARR', 'CVNA', 'CAT', 'CBOE', 'CBRE', 'CDW', 'COR', 'CNC', 'CNP', 'CF', 'CRL', 'SCHW', 'CHTR', 'CVX', 'CMG', 'CB', 'CHD', 'CIEN', 'CI', 'CINF', 'CTAS', 'CSCO', 'C', 'CFG', 'CLX', 'CME', 'CMS', 'KO', 'CTSH', 'COIN', 'CL', 'CMCSA', 'FIX', 'CAG', 'COP', 'ED', 'STZ', 'CEG', 'COO', 'CPRT', 'GLW', 'CPAY', 'CTVA', 'CSGP', 'COST', 'CRH', 'CRWD', 'CCI', 'CSX', 'CMI', 'CVS', 'DHR', 'DRI', 'DDOG', 'DVA', 'DECK', 'DE', 'DELL', 'DAL', 'DVN', 'DXCM', 'FANG', 'DLR', 'DG', 'DLTR', 'D', 'DPZ', 'DASH', 'DOV', 'DOW', 'DHI', 'DTE', 'DUK', 'DD', 'ETN', 'EBAY', 'ECL', 'EIX', 'EW', 'EA', 'ELV', 'EME', 'EMR', 'ETR', 'EOG', 'EPAM', 'EQT', 'EFX', 'EQIX', 'EQR', 'ERIE', 'ESS', 'EL', 'EG', 'EVRG', 'ES', 'EXC', 'EXE', 'EXPE', 'EXPD', 'EXR', 'XOM', 'FFIV', 'FDS', 'FICO', 'FAST', 'FRT', 'FDX', 'FIS', 'FITB', 'FSLR', 'FE', 'FISV', 'F', 'FTNT', 'FTV', 'FOXA', 'FOX', 'BEN', 'FCX', 'GRMN', 'IT', 'GE', 'GEHC', 'GEV', 'GEN', 'GNRC', 'GD', 'GIS', 'GM', 'GPC', 'GILD', 'GPN', 'GL', 'GDDY', 'GS', 'HAL', 'HIG', 'HAS', 'HCA', 'DOC', 'HSIC', 'HSY', 'HPE', 'HLT', 'HD', 'HON', 'HRL', 'HST', 'HWM', 'HPQ', 'HUBB', 'HUM', 'HBAN', 'HII', 'IBM', 'IEX', 'IDXX', 'ITW', 'INCY', 'IR', 'PODD', 'INTC', 'IBKR', 'ICE', 'IFF', 'IP', 'INTU', 'ISRG', 'IVZ', 'INVH', 'IQV', 'IRM', 'JBHT', 'JBL', 'JKHY', 'J', 'JNJ', 'JCI', 'JPM', 'KVUE', 'KDP', 'KEY', 'KEYS', 'KMB', 'KIM', 'KMI', 'KKR', 'KLAC', 'KHC', 'KR', 'LHX', 'LH', 'LRCX', 'LW', 'LVS', 'LDOS', 'LEN', 'LII', 'LLY', 'LIN', 'LYV', 'LMT', 'L', 'LOW', 'LULU', 'LYB', 'MTB', 'MPC', 'MAR', 'MRSH', 'MLM', 'MAS', 'MA', 'MTCH', 'MKC', 'MCD', 'MCK', 'MDT', 'MRK', 'META', 'MET', 'MTD', 'MGM', 'MCHP', 'MU', 'MSFT', 'MAA', 'MRNA', 'MOH', 'TAP', 'MDLZ', 'MPWR', 'MNST', 'MCO', 'MS', 'MOS', 'MSI', 'MSCI', 'NDAQ', 'NTAP', 'NFLX', 'NEM', 'NWSA', 'NWS', 'NEE', 'NKE', 'NI', 'NDSN', 'NSC', 'NTRS', 'NOC', 'NCLH', 'NRG', 'NUE', 'NVDA', 'NVR', 'NXPI', 'ORLY', 'OXY', 'ODFL', 'OMC', 'ON', 'OKE', 'ORCL', 'OTIS', 'PCAR', 'PKG', 'PLTR', 'PANW', 'PSKY', 'PH', 'PAYX', 'PAYC', 'PYPL', 'PNR', 'PEP', 'PFE', 'PCG', 'PM', 'PSX', 'PNW', 'PNC', 'POOL', 'PPG', 'PPL', 'PFG', 'PG', 'PGR', 'PLD', 'PRU', 'PEG', 'PTC', 'PSA', 'PHM', 'PWR', 'QCOM', 'DGX', 'RL', 'RJF', 'RTX', 'O', 'REG', 'REGN', 'RF', 'RSG', 'RMD', 'RVTY', 'HOOD', 'ROK', 'ROL', 'ROP', 'ROST', 'RCL', 'SPGI', 'CRM', 'SBAC', 'SLB', 'STX', 'SRE', 'NOW', 'SHW', 'SPG', 'SWKS', 'SJM', 'SW', 'SNA', 'SOLV', 'SO', 'LUV', 'SWK', 'SBUX', 'STT', 'STLD', 'STE', 'SYK', 'SMCI', 'SYF', 'SNPS', 'SYY', 'TMUS', 'TROW', 'TTWO', 'TPR', 'TRGP', 'TGT', 'TEL', 'TDY', 'TER', 'TSLA', 'TXN', 'TPL', 'TXT', 'TMO', 'TJX', 'TKO', 'TTD', 'TSCO', 'TT', 'TDG', 'TRV', 'TRMB', 'TFC', 'TYL', 'TSN', 'USB', 'UBER', 'UDR', 'ULTA', 'UNP', 'UAL', 'UPS', 'URI', 'UNH', 'UHS', 'VLO', 'VTR', 'VLTO', 'VRSN', 'VRSK', 'VZ', 'VRTX', 'VTRS', 'VICI', 'V', 'VST', 'VMC', 'WRB', 'GWW', 'WAB', 'WMT', 'DIS', 'WBD', 'WM', 'WAT', 'WEC', 'WFC', 'WELL', 'WST', 'WDC', 'WY', 'WSM', 'WMB', 'WTW', 'WDAY', 'WYNN', 'XEL', 'XYL', 'YUM', 'ZBRA', 'ZBH', 'ZTS'
 ]
+
+def get_sp500_tickers():
+    """
+    Fetch current S&P 500 ticker list from Wikipedia with fallback to static list.
+    """
+    url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
+    try:
+        req = request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with request.urlopen(req, timeout=10) as resp:
+            csv_data = resp.read().decode('utf-8')
+            tables = pd.read_html(io.StringIO(csv_data))
+            df = tables[0]
+            tickers = [s.replace('.', '-') for s in df['Symbol'].tolist()]
+            if tickers:
+                print(f"Fetched {len(tickers)} S&P 500 tickers from Wikipedia.", flush=True)
+                return tickers
+    except Exception as e:
+        print(f"Could not fetch S&P 500 tickers from Wikipedia ({e}), using static fallback.", flush=True)
+    return SP500_TICKERS
 
 # Define Tickers
 ASSETS = {
@@ -110,7 +134,7 @@ def get_historical_gold():
         return {}
 
 def main():
-    print("Generating TimeFrame dates...")
+    print("Generating TimeFrame dates...", flush=True)
     timeframe_dates = get_timeframe_dates()
     
     # Fetch inflation data
@@ -122,18 +146,17 @@ def main():
     final_data = {}
     
     # Collect all valid trading dates we need data for
-    # To optimize, we can find the min date across all timeframes and fetch from there
     all_dates = set()
     for dates in timeframe_dates.values():
         all_dates.update(dates)
     
     sorted_dates = sorted(list(all_dates))
     if not sorted_dates:
-        print("No dates to fetch.")
+        print("No dates to fetch.", flush=True)
         return
 
     start_date = sorted_dates[0]
-    print(f"Fetching data starting from {start_date}...")
+    print(f"Fetching data starting from {start_date}...", flush=True)
 
     # Build full list of tickers to fetch
     tickers_map = {} # label -> symbol
@@ -161,11 +184,14 @@ def main():
         all_symbols.append(symbol)
 
     # Add S&P 500 Tickers
-    for symbol in SP500_TICKERS:
+    sp500_tickers = get_sp500_tickers()
+    for symbol in sp500_tickers:
         tickers_map[symbol] = symbol
         all_symbols.append(symbol)
 
-    print(f"Total assets to fetch: {len(all_symbols)}")
+    # De-duplicate symbols
+    all_symbols = sorted(list(set(all_symbols)))
+    print(f"Total assets to fetch: {len(all_symbols)}", flush=True)
 
     all_keys = list(tickers_map.keys())
     all_keys.sort()
@@ -185,9 +211,9 @@ def main():
         try:
             with open(output_path, "r") as f:
                 existing_data = json.load(f)
-            print("Loaded existing Data.json")
+            print("Loaded existing Data.json", flush=True)
         except Exception as e:
-            print(f"Could not load existing data: {e}")
+            print(f"Could not load existing data: {e}", flush=True)
 
     existing_lookup = {} # date -> { symbol_label: val }
     existing_cols_set = set()
@@ -218,7 +244,7 @@ def main():
             
     dates_to_fetch = []
     if new_tickers_added:
-        print("New tickers detected or existing data incomplete. Fetching from beginning...")
+        print("New tickers detected or existing data incomplete. Fetching from beginning...", flush=True)
         dates_to_fetch = sorted_dates
     else:
         for d in sorted_dates:
@@ -231,24 +257,24 @@ def main():
 
     if dates_to_fetch:
         fetch_start_date = dates_to_fetch[0]
-        print(f"Need to fetch new data starting from {fetch_start_date}...")
+        print(f"Need to fetch new data starting from {fetch_start_date}...", flush=True)
         for i in range(0, len(all_symbols), CHUNK_SIZE):
             chunk = all_symbols[i:i+CHUNK_SIZE]
-            print(f"Downloading chunk {i//CHUNK_SIZE + 1}/{(len(all_symbols)-1)//CHUNK_SIZE + 1} ({len(chunk)} tickers)...")
+            print(f"Downloading chunk {i//CHUNK_SIZE + 1}/{(len(all_symbols)-1)//CHUNK_SIZE + 1} ({len(chunk)} tickers)...", flush=True)
             
             try:
                 df = yf.download(chunk, start=fetch_start_date, progress=False, threads=True, group_by='ticker')
                 all_data_frames.append(df)
                 
             except Exception as e:
-                print(f"Error fetching chunk: {e}")
+                print(f"Error fetching chunk: {e}", flush=True)
     else:
-        print("No new dates to fetch. Using fully cached data.")
+        print("No new dates to fetch. Using fully cached data.", flush=True)
 
-    print("\nProcessing data into timeframes...")
+    print("\nProcessing data into timeframes...", flush=True)
 
     for tf_label, dates in timeframe_dates.items():
-        print(f"Processing {tf_label}...")
+        print(f"Processing {tf_label}...", flush=True)
         
         columns = ["Date"] + all_keys
         tf_rows = []
@@ -310,12 +336,9 @@ def main():
     output_path = os.path.join(public_dir, "Data.json")
     with open(output_path, "w") as f:
         json.dump(final_data, f, indent=None, separators=(',', ':')) # Minified
-    print(f"\nSuccessfully saved full stock data to {output_path}")
+    print(f"\nSuccessfully saved full stock data to {output_path}", flush=True)
 
     # 2. Save Fast Data (FastData.json)
-    # Goal: Gold + SPY (Default Stock) + Inflation Adjusted $ + Max (Default Timeframe)
-    # Columnar format for consistency
-    
     fast_data = {}
     
     if "Max" in final_data:
@@ -323,7 +346,6 @@ def main():
         src_cols = src["columns"]
         src_rows = src["rows"]
         
-        # Indices
         try:
             date_idx = src_cols.index("Date")
             gold_idx = src_cols.index("Gold")
@@ -351,12 +373,12 @@ def main():
                 "rows": fast_rows
             }
         except ValueError:
-            print("Warning: Could not find Gold or SPY in columns for FastData.")
+            print("Warning: Could not find Gold or SPY in columns for FastData.", flush=True)
             
     fast_output_path = os.path.join(public_dir, "FastData.json")
     with open(fast_output_path, "w") as f:
         json.dump(fast_data, f, indent=None, separators=(',', ':')) # Minified
-    print(f"Successfully saved fast data to {fast_output_path}")
+    print(f"Successfully saved fast data to {fast_output_path}", flush=True)
     
     # 3. Save Tickers List (tickers.json)
     tickers_list = []
@@ -372,7 +394,7 @@ def main():
     tickers_output_path = os.path.join(public_dir, "tickers.json")
     with open(tickers_output_path, "w") as f:
         json.dump(tickers_list, f, indent=None, separators=(',', ':'))
-    print(f"Successfully saved tickers list to {tickers_output_path}")
+    print(f"Successfully saved tickers list to {tickers_output_path}", flush=True)
 
 if __name__ == "__main__":
     main()
